@@ -1,0 +1,11 @@
+target = appletv
+include $(THEOS)/makefiles/common.mk
+
+LIBRARY_NAME = libapplist
+
+libapplist_FILES = $(wildcard *.m)
+libapplist_CFLAGS = -I./ -Iinclude -IPublic -fobjc-arc
+libapplist_LDFLAGS = -undefined dynamic_lookup
+include $(THEOS_MAKE_PATH)/library.mk
+SUBPROJECTS += applist
+include $(THEOS_MAKE_PATH)/aggregate.mk

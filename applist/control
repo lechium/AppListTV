@@ -1,0 +1,9 @@
+Package: applist
+Name: AppList
+Version: 0.0.1
+Architecture: appletvos-arm64
+Description: An awesome library of some sort!!
+Maintainer: Kevin Bradley
+Author: Kevin Bradley
+Section: System
+Tag: role::developer

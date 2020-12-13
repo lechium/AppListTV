@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>entry</key>
+	<dict>
+		<key>bundle</key>
+		<string>AppList</string>
+		<key>cell</key>
+		<string>PSLinkCell</string>
+		<key>detail</key>
+		<string>ALRootListController</string>
+		<key>icon</key>
+		<string>icon.png</string>
+		<key>isController</key>
+		<integer>1</integer>
+		<key>label</key>
+		<string>AppList</string>
+		<key>description</key>
+		<string>AppList Copyright 20XX Kevin Bradley All rights reserved.</string>
+	</dict>
+</dict>
+</plist>
