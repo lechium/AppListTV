@@ -49,7 +49,10 @@
 //applist compat
 - (NSString *)displayName;
 - (NSString *)displayIdentifier;
+- (NSString *)bundleIdentifier;
+- (NSString *)localizedName;
 
+- (BOOL)isSystemApplication;
 - (BOOL)hasIcon;
 - (UIImage *)icon;
 - (NSNumber *)installedSize;

@@ -11,6 +11,8 @@
 #include <notify.h>
 #include <objc/message.h>
 
+#define LOG_SELF        NSLog(@"[ALApplicationPreferenceViewController] %@ %@", self, NSStringFromSelector(_cmd))
+
 @interface PSSpecifier (iOS5)
 @property (retain, nonatomic) NSString *identifier;
 @end
@@ -65,8 +67,21 @@ __attribute__((visibility("hidden")))
 
 @implementation ALApplicationPreferenceViewController
 
+- (void)viewDidLoad {
+    LOG_SELF;
+    [super viewDidLoad];
+    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0,0,1920,1080) style:UITableViewStyleGrouped];
+    _dataSource = [[ALPreferencesTableDataSource alloc] initWithController:self];
+    [_tableView setDataSource:_dataSource];
+    [_tableView setDelegate:_dataSource];
+    _dataSource.tableView = _tableView;
+    [_dataSource setSectionDescriptors:[ALApplicationTableDataSource standardSectionDescriptors]];
+    
+}
+
 - (id)initForContentSize:(CGSize)size
 {
+    LOG_SELF;
 	if ([PSViewController instancesRespondToSelector:@selector(initForContentSize:)])
 		self = [super initForContentSize:size];
 	else
@@ -108,6 +123,7 @@ __attribute__((visibility("hidden")))
 
 - (void)setNavigationTitle:(NSString *)navigationTitle
 {
+    LOG_SELF;
 	[_navigationTitle autorelease];
 	_navigationTitle = [navigationTitle retain];
 	if ([self respondsToSelector:@selector(navigationItem)])
@@ -116,6 +132,7 @@ __attribute__((visibility("hidden")))
 
 - (void)_updateSections
 {
+     LOG_SELF;
     NSInteger index = 0;
     for (NSDictionary *descriptor in descriptors) {
         NSString *predicateFormat = [descriptor objectForKey:ALSectionDescriptorVisibilityPredicateKey];
@@ -142,6 +159,7 @@ __attribute__((visibility("hidden")))
 
 - (void)settingsChanged
 {
+     LOG_SELF;
 	[settings release];
 	BOOL skipOnDiskRead = NO;
 	if (preferencesKey) {
@@ -172,6 +190,7 @@ static void SettingsChangedNotificationFired(CFNotificationCenterRef center, voi
 
 - (void)loadFromSpecifier:(PSSpecifier *)specifier
 {
+     LOG_SELF;
 	[self setNavigationTitle:[specifier propertyForKey:@"ALNavigationTitle"] ?: [specifier name]];
 	singleEnabledMode = [[specifier propertyForKey:@"ALSingleEnabledMode"] boolValue];
 
@@ -239,12 +258,14 @@ static void SettingsChangedNotificationFired(CFNotificationCenterRef center, voi
 
 - (void)setSpecifier:(PSSpecifier *)specifier
 {
+     LOG_SELF;
 	[self loadFromSpecifier:specifier];
 	[super setSpecifier:specifier];
 }
 
 - (void)viewWillBecomeVisible:(void *)source
 {
+     LOG_SELF;
 	if (source)
 		[self loadFromSpecifier:(PSSpecifier *)source];
 	[super viewWillBecomeVisible:source];
@@ -252,11 +273,13 @@ static void SettingsChangedNotificationFired(CFNotificationCenterRef center, voi
 
 - (void)setTitle:(NSString *)title
 {
+     LOG_SELF;
 	[super setTitle:[self navigationTitle]];
 }
 
 - (UIView *)view
 {
+     LOG_SELF;
 	UIView *result = [super view];
 	if (!_tableView.superview) {
 		_tableView.frame = result.bounds;
@@ -298,6 +321,7 @@ static UIEdgeInsets EdgeInsetsForViewController(UIViewController *vc)
 	UIEdgeInsets insets = EdgeInsetsForViewController((UIViewController *)self);
 	_tableView.contentInset = insets;
 	_tableView.scrollIndicatorInsets = insets;
+    [_tableView setFrame:CGRectMake(0,0,1920,1080)];
 }
 #endif
 
@@ -308,6 +332,7 @@ static UIEdgeInsets EdgeInsetsForViewController(UIViewController *vc)
 
 - (void)cellAtIndexPath:(NSIndexPath *)indexPath didChangeToValue:(id)newValue
 {
+     LOG_SELF;
 	id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
 	if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
 		NSString *key = [cellDescriptor objectForKey:@"ALSettingsKey"];
@@ -353,6 +378,7 @@ static UIEdgeInsets EdgeInsetsForViewController(UIViewController *vc)
 
 - (id)valueForCellAtIndexPath:(NSIndexPath *)indexPath
 {
+     LOG_SELF;
 	id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
 	if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
 		return [settings objectForKey:[cellDescriptor objectForKey:@"ALSettingsKey"]] ?: [cellDescriptor objectForKey:@"ALSettingsDefaultValue"];
@@ -367,6 +393,7 @@ static UIEdgeInsets EdgeInsetsForViewController(UIViewController *vc)
 
 - (id)valueTitleForCellAtIndexPath:(NSIndexPath *)indexPath
 {
+     LOG_SELF;
 	id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
 	if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
 		id value = [[settings objectForKey:[cellDescriptor objectForKey:@"ALSettingsKey"]] ?: [cellDescriptor objectForKey:@"ALSettingsDefaultValue"] description];
@@ -399,6 +426,7 @@ static UIEdgeInsets EdgeInsetsForViewController(UIViewController *vc)
 
 - (void)pushController:(id<PSBaseView>)controller
 {
+     LOG_SELF;
 	[super pushController:controller];
 	[controller setParentController:self];
 }
@@ -561,6 +589,7 @@ static id RecursivelyApplyMacro(id input, NSString *macro, NSString *value) {
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    LOG_SELF;
 	id cell = [tableView cellForRowAtIndexPath:indexPath];
 	if ([cell respondsToSelector:@selector(didSelect)])
 		[cell didSelect];
@@ -568,6 +597,7 @@ static id RecursivelyApplyMacro(id input, NSString *macro, NSString *value) {
 	if (cellDescriptor) {
 		NSDictionary *sectionDescriptor = [self.sectionDescriptors objectAtIndex:indexPath.section];
 		NSString *stringAction = [_controller appliedValueForKey:@"action" inCellDescriptor:cellDescriptor sectionDescriptor:sectionDescriptor];
+        NSLog(@"stringAction: %@", stringAction);
 		SEL action = NSSelectorFromString([stringAction stringByAppendingString:@"FromCellDescriptor:sectionDescriptor:indexPath:"]);
 		if ([_controller respondsToSelector:action]) {
 			((void (*)(ALApplicationPreferenceViewController *, SEL, id, NSDictionary *, NSIndexPath *))objc_msgSend)(_controller, action, cellDescriptor, sectionDescriptor, indexPath);

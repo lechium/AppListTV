@@ -6,6 +6,8 @@
 #import <UIKit/UIKit.h>
 #import <CoreGraphics/CoreGraphics.h>
 
+#define LOG_SELF        NSLog(@"[ALApplicationTableDataSource] %@ %@", self, NSStringFromSelector(_cmd))
+
 const NSString *ALSectionDescriptorTitleKey = @"title";
 const NSString *ALSectionDescriptorFooterTitleKey = @"footer-title";
 const NSString *ALSectionDescriptorPredicateKey = @"predicate";
@@ -26,6 +28,7 @@ const NSString *ALItemDescriptorImageKey = @"image";
 
 - (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
 {
+    LOG_SELF;
 	if ((self = [super initWithStyle:style reuseIdentifier:reuseIdentifier])) {
 		self.backgroundColor = [UIColor clearColor];
 		UIActivityIndicatorView *spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
@@ -78,6 +81,7 @@ static UIImage *defaultImage;
 
 + (void)initialize
 {
+    LOG_SELF;
 	if (self == [ALApplicationTableDataSourceSection class]) {
 		defaultImage = [[ALApplicationList sharedApplicationList] iconOfSize:ALApplicationIconSizeLarge forDisplayIdentifier:@"com.apple.WebSheet"];
 	}
@@ -85,6 +89,7 @@ static UIImage *defaultImage;
 
 + (void)loadIconsFromBackground
 {
+    LOG_SELF;
     @autoreleasepool {
         
         //unfair_lock_lock(&spinLock);
@@ -103,6 +108,7 @@ static UIImage *defaultImage;
 
 - (id)initWithDescriptor:(NSDictionary *)descriptor dataSource:(ALApplicationTableDataSource *)dataSource loadsAsynchronously:(BOOL)loadsAsynchronously
 {
+    LOG_SELF;
 	if ((self = [super init])) {
 		_dataSource = dataSource;
 		_descriptor = [descriptor copy];
@@ -127,6 +133,7 @@ static UIImage *defaultImage;
 
 - (void)potentialLoadFail
 {
+    LOG_SELF;
 	if ([ALApplicationList sharedApplicationList].applicationCount == 0) {
 		static BOOL hasFailedAlready;
 		if (!hasFailedAlready) {
@@ -139,6 +146,7 @@ static UIImage *defaultImage;
 
 - (void)loadContent
 {
+    LOG_SELF;
     @autoreleasepool {
         
         NSDictionary *descriptor = _descriptor;
@@ -168,6 +176,7 @@ static UIImage *defaultImage;
 
 - (void)completedLoading
 {
+    LOG_SELF;
 	if (loadingState) {
 		loadingState = 0;
 		[_dataSource sectionRequestedSectionReload:self animated:CACurrentMediaTime() - loadStartTime > 0.1];
@@ -176,6 +185,7 @@ static UIImage *defaultImage;
 
 - (BOOL)waitForContentUntilDate:(NSDate *)date
 {
+    LOG_SELF;
 	if (loadingState) {
 		[loadCondition lock];
 		BOOL result;
@@ -208,33 +218,39 @@ static inline NSString *Localize(NSBundle *bundle, NSString *string)
 
 - (NSString *)title
 {
+    LOG_SELF;
 	return Localize([_descriptor objectForKey:ALSectionDescriptorTitleKey]);
 }
 
 - (NSString *)footerTitle
 {
+    LOG_SELF;
 	return Localize([_descriptor objectForKey:ALSectionDescriptorFooterTitleKey]);
 }
 
 - (NSString *)displayIdentifierForRow:(NSInteger)row
 {
+    LOG_SELF;
 	NSArray *array = _displayIdentifiers;
 	return (row < [array count]) ? [array objectAtIndex:row] : nil;
 }
 
 - (id)cellDescriptorForRow:(NSInteger)row
 {
+    LOG_SELF;
 	NSArray *array = isStaticSection ? _displayNames : _displayIdentifiers;
 	return (row < [array count]) ? [array objectAtIndex:row] : nil;
 }
 
 - (NSInteger)rowCount
 {
+    LOG_SELF;
 	return loadingState ? 1 : [_displayNames count];
 }
 
 static inline UITableViewCell *CellWithClassName(NSString *className, UITableView *tableView)
 {
+    
 	return [tableView dequeueReusableCellWithIdentifier:className] ?: [[NSClassFromString(className) alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:className];
 }
 
@@ -243,6 +259,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRow:(NSInteger)row
 {
+    LOG_SELF;
 	if (isStaticSection) {
 		NSDictionary *itemDescriptor = [_displayNames objectAtIndex:row];
 		UITableViewCell *cell = CellWithClassName([itemDescriptor objectForKey:ALSectionDescriptorCellClassNameKey] ?: [_descriptor objectForKey:ALSectionDescriptorCellClassNameKey] ?: @"UITableViewCell");
@@ -304,6 +321,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)updateIndexPath:(NSIndexPath *)indexPath ofTableView:(UITableView *)tableView withLoadedIconOfSize:(CGFloat)newIconSize forDisplayIdentifier:(NSString *)displayIdentifier
 {
+    LOG_SELF;
 	if ((loadingState == 0) && [displayIdentifier isEqual:[_displayIdentifiers objectAtIndex:indexPath.row]] && newIconSize == iconSize) {
 		UITableViewCell *cell = [tableView cellForRowAtIndexPath:indexPath];
 		UIImageView *imageView = cell.imageView;
@@ -319,6 +337,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)detach
 {
+    LOG_SELF;
 	_dataSource = nil;
 }
 
@@ -328,6 +347,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 + (NSArray *)standardSectionDescriptors
 {
+    LOG_SELF;
 	NSNumber *iconSize = [NSNumber numberWithUnsignedInteger:ALApplicationIconSizeLarge];
 	return [NSArray arrayWithObjects:
 		[NSDictionary dictionaryWithObjectsAndKeys:
@@ -349,11 +369,13 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 + (id)dataSource
 {
+    LOG_SELF;
 	return [[self alloc] init];
 }
 
 - (id)init
 {
+    LOG_SELF;
 	if ((self = [super init])) {
 		_loadsAsynchronously = YES;
 		_sectionDescriptors = [[NSMutableArray alloc] init];
@@ -364,6 +386,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)dealloc
 {
+    LOG_SELF;
 	for (ALApplicationTableDataSourceSection *section in _sectionDescriptors) {
 		[section detach];
 	}
@@ -377,6 +400,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)setSectionDescriptors:(NSArray *)sectionDescriptors
 {
+    LOG_SELF;
 	for (ALApplicationTableDataSourceSection *section in _sectionDescriptors) {
 		[section detach];
 	}
@@ -392,6 +416,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (NSArray *)sectionDescriptors
 {
+    LOG_SELF;
 	// Recreate the array
 	NSMutableArray *result = [[NSMutableArray alloc] initWithCapacity:[_sectionDescriptors count]];
 	for (ALApplicationTableDataSourceSection *section in _sectionDescriptors) {
@@ -402,6 +427,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)removeSectionDescriptorsAtIndexes:(NSIndexSet *)indexSet
 {
+    LOG_SELF;
 	if (indexSet) {
 		NSUInteger index = [indexSet firstIndex];
 		if (index != NSNotFound) {
@@ -421,11 +447,13 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)removeSectionDescriptorAtIndex:(NSInteger)index
 {
+    LOG_SELF;
 	[self removeSectionDescriptorsAtIndexes:[NSIndexSet indexSetWithIndex:index]];
 }
 
 - (void)insertSectionDescriptor:(NSDictionary *)sectionDescriptor atIndex:(NSInteger)index
 {
+    LOG_SELF;
 	ALApplicationTableDataSourceSection *section = [[ALApplicationTableDataSourceSection alloc] initWithDescriptor:sectionDescriptor dataSource:self loadsAsynchronously:_loadsAsynchronously];
 	[_sectionDescriptors insertObject:section atIndex:index];
 	[_tableView insertSections:[NSIndexSet indexSetWithIndex:index] withRowAnimation:UITableViewRowAnimationFade];
@@ -433,6 +461,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)setLocalizationBundle:(NSBundle *)localizationBundle
 {
+    LOG_SELF;
 	if (_localizationBundle != localizationBundle) {
 		_localizationBundle = localizationBundle;
 		[_tableView reloadData];
@@ -441,6 +470,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (NSString *)displayIdentifierForIndexPath:(NSIndexPath *)indexPath
 {
+    LOG_SELF;
 	NSInteger section = indexPath.section;
 	if ([_sectionDescriptors count] > section)
 		return [[_sectionDescriptors objectAtIndex:section] displayIdentifierForRow:indexPath.row];
@@ -450,6 +480,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (id)cellDescriptorForIndexPath:(NSIndexPath *)indexPath
 {
+    LOG_SELF;
 	NSInteger section = indexPath.section;
 	if ([_sectionDescriptors count] > section)
 		return [[_sectionDescriptors objectAtIndex:section] cellDescriptorForRow:indexPath.row];
@@ -459,6 +490,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)iconLoadedFromNotification:(NSNotification *)notification
 {
+    LOG_SELF;
 	NSDictionary *userInfo = notification.userInfo;
 	NSString *displayIdentifier = [userInfo objectForKey:ALDisplayIdentifierKey];
 	CGFloat iconSize = [[userInfo objectForKey:ALIconSizeKey] floatValue];
@@ -471,6 +503,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (void)sectionRequestedSectionReload:(ALApplicationTableDataSourceSection *)section animated:(BOOL)animated
 {
+    LOG_SELF;
 	if (animated) {
 		NSInteger index = [_sectionDescriptors indexOfObjectIdenticalTo:section];
 		if (index != NSNotFound) {
@@ -483,12 +516,14 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (BOOL)waitUntilDate:(NSDate *)date forContentInSectionAtIndex:(NSInteger)sectionIndex
 {
+    LOG_SELF;
 	ALApplicationTableDataSourceSection *section = [_sectionDescriptors objectAtIndex:sectionIndex];
 	return [section waitForContentUntilDate:date];
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
+    LOG_SELF;
 	if (!_tableView) {
 		_tableView = tableView;
 		NSLog(@"ALApplicationTableDataSource warning: Assumed control over %@", tableView);
@@ -498,21 +533,29 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
 {
+    LOG_SELF;
 	return [[_sectionDescriptors objectAtIndex:section] title];
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section
 {
+    LOG_SELF;
 	return [[_sectionDescriptors objectAtIndex:section] footerTitle];
+}
+
+- (CGFloat)tableView:(UITableView *)table heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 100;
 }
 
 - (NSInteger)tableView:(UITableView *)table numberOfRowsInSection:(NSInteger)section
 {
+    LOG_SELF;
 	return [[_sectionDescriptors objectAtIndex:section] rowCount];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    LOG_SELF;
 	ALApplicationTableDataSourceSection *section = [_sectionDescriptors objectAtIndex:indexPath.section];
 	return [section tableView:tableView cellForRow:indexPath.row];
 }

@@ -40,6 +40,30 @@
     
 }
 
+- (id)appTags {
+    return [_proxy appTags];
+}
+
+- (NSURL *)bundleURL {
+    return [_proxy bundleURL];
+}
+
+- (NSString *)bundleExecutable {
+    return [_proxy bundleExecutable];
+}
+
+- (NSString *)bundleIdentifier {
+    return _bundleID;
+}
+
+- (NSString *)localizedName {
+    return [_proxy valueForKey:@"localizedName"];
+}
+
+- (BOOL)isSystemApplication {
+    return ([_applicationType isEqualToString:@"System"]);
+}
+
 - (NSString *)displayName {
     return _name;
 }

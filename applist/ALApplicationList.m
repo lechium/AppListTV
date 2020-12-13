@@ -99,10 +99,12 @@ static NSInteger DictionaryTextComparator(id a, id b, void *context) {
 
 - (id)valueForKeyPath:(NSString *)keyPath forDisplayIdentifier:(NSString *)displayIdentifier {
     ALApplication *app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:displayIdentifier];
+    NSLog(@"valueForKeyPath: %@", keyPath);
     return [app valueForKeyPath:keyPath];
 }
 - (id)valueForKey:(NSString *)keyPath forDisplayIdentifier:(NSString *)displayIdentifier {
     ALApplication *app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:displayIdentifier];
+    NSLog(@"valueForKey: %@", keyPath);
     return [app valueForKey:keyPath];
 }
 - (BOOL)applicationWithDisplayIdentifierIsHidden:(NSString *)displayIdentifier {
