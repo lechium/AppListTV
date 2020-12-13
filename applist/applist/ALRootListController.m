@@ -48,7 +48,7 @@
     
     [apps enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         NSString *settingsKey = [settingsKeyPrefix stringByAppendingString:obj];
-        TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:@"On" offTitle:@"Off"];
+        TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
         NSLog(@"settings default value: %@", settingsDefaultValue);
         [item setDefaultValue:settingsDefaultValue];
         
