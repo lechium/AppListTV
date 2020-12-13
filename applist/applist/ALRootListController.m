@@ -29,7 +29,11 @@
     ALApplicationList *list = [ALApplicationList sharedApplicationList];
     NSDictionary *apps = [list applications];
     NSDictionary *spec = [self specifier];
-    //NSString *navTitle = spec[@"ALNavigationTitle"];
+    NSString *navTitle = spec[@"ALNavigationTitle"];
+    if (!navTitle){
+        navTitle = spec[@"label"];
+    }
+    self.title = navTitle;
     id settingsDefaultValue = spec[@"ALSettingsDefaultValue"];
     if ([settingsDefaultValue respondsToSelector:@selector(length)]){
         NSNumber *number = [NSNumber numberWithInteger:[settingsDefaultValue integerValue]];
