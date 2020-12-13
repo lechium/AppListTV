@@ -26,17 +26,17 @@
 __attribute__((visibility("hidden")))
 @interface ALApplicationPreferenceViewController : PSListController {
 @private
-	ALPreferencesTableDataSource *_dataSource;
-	UITableView *_tableView;
-	NSString *_navigationTitle;
+    ALPreferencesTableDataSource *_dataSource;
+    UITableView *_tableView;
+    NSString *_navigationTitle;
     NSArray *descriptors;
-	id settingsDefaultValue;
-	NSString *settingsPath;
-	NSString *preferencesKey;
-	NSMutableDictionary *settings;
-	NSString *settingsKeyPrefix;
-	NSString *settingsChangeNotification;
-	BOOL singleEnabledMode;
+    id settingsDefaultValue;
+    NSString *settingsPath;
+    NSString *preferencesKey;
+    NSMutableDictionary *settings;
+    NSString *settingsKeyPrefix;
+    NSString *settingsChangeNotification;
+    BOOL singleEnabledMode;
 }
 
 - (id)initForContentSize:(CGSize)size;
@@ -54,7 +54,7 @@ __attribute__((visibility("hidden")))
 __attribute__((visibility("hidden")))
 @interface ALPreferencesTableDataSource : ALApplicationTableDataSource<ALValueCellDelegate, UITableViewDelegate> {
 @private
-	ALApplicationPreferenceViewController *_controller;
+    ALApplicationPreferenceViewController *_controller;
 }
 
 - (id)initWithController:(ALApplicationPreferenceViewController *)controller;
@@ -81,64 +81,51 @@ __attribute__((visibility("hidden")))
 
 - (id)initForContentSize:(CGSize)size
 {
-    LOG_SELF;
-	if ([PSViewController instancesRespondToSelector:@selector(initForContentSize:)])
-		self = [super initForContentSize:size];
-	else
-		self = [super init];
-	if (self) {
-		CGRect frame;
-		frame.origin = CGPointZero;
-		frame.size = size;
-		_tableView = [[UITableView alloc] initWithFrame:frame style:UITableViewStyleGrouped];
-		_dataSource = [[ALPreferencesTableDataSource alloc] initWithController:self];
-		[_tableView setDataSource:_dataSource];
-		[_tableView setDelegate:_dataSource];
-		[_tableView setAutoresizingMask:UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
-		_dataSource.tableView = _tableView;
-	}
-	return self;
+    if ([PSViewController instancesRespondToSelector:@selector(initForContentSize:)])
+        self = [super initForContentSize:size];
+    else
+        self = [super init];
+    if (self) {
+        CGRect frame;
+        frame.origin = CGPointZero;
+        frame.size = size;
+        _tableView = [[UITableView alloc] initWithFrame:frame style:UITableViewStyleGrouped];
+        _dataSource = [[ALPreferencesTableDataSource alloc] initWithController:self];
+        [_tableView setDataSource:_dataSource];
+        [_tableView setDelegate:_dataSource];
+        [_tableView setAutoresizingMask:UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
+        _dataSource.tableView = _tableView;
+    }
+    return self;
 }
 
 - (void)dealloc
 {
-	if (settingsChangeNotification) {
-		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), self, (CFStringRef)settingsChangeNotification, NULL);
-	}
-	[_tableView setDelegate:nil];
-	[_tableView setDataSource:nil];
-	[_tableView release];
-	_dataSource.tableView = nil;
-	[_dataSource release];
-	[settingsDefaultValue release];
-	[settingsPath release];
-	[preferencesKey release];
-	[settingsKeyPrefix release];
-	[settingsChangeNotification release];
-	[_navigationTitle release];
-	[super dealloc];
+    if (settingsChangeNotification) {
+        CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge const void *)(self), (CFStringRef)settingsChangeNotification, NULL);
+    }
+    [_tableView setDelegate:nil];
+    [_tableView setDataSource:nil];
+    _dataSource.tableView = nil;
 }
 
 @synthesize /*tableView = _tableView,*/ dataSource = _dataSource, navigationTitle = _navigationTitle;
 
 - (void)setNavigationTitle:(NSString *)navigationTitle
 {
-    LOG_SELF;
-	[_navigationTitle autorelease];
-	_navigationTitle = [navigationTitle retain];
-	if ([self respondsToSelector:@selector(navigationItem)])
-		[[self navigationItem] setTitle:_navigationTitle];
+    _navigationTitle = navigationTitle;
+    if ([self respondsToSelector:@selector(navigationItem)])
+        [[self navigationItem] setTitle:_navigationTitle];
 }
 
 - (void)_updateSections
 {
-     LOG_SELF;
     NSInteger index = 0;
     for (NSDictionary *descriptor in descriptors) {
         NSString *predicateFormat = [descriptor objectForKey:ALSectionDescriptorVisibilityPredicateKey];
         if (!predicateFormat) {
-        	index++;
-        	continue;
+            index++;
+            continue;
         }
         NSPredicate *predicate = [NSPredicate predicateWithFormat:predicateFormat];
         BOOL visible = [predicate evaluateWithObject:settings];
@@ -159,162 +146,147 @@ __attribute__((visibility("hidden")))
 
 - (void)settingsChanged
 {
-     LOG_SELF;
-	[settings release];
-	BOOL skipOnDiskRead = NO;
-	if (preferencesKey) {
-		CFPreferencesAppSynchronize((CFStringRef)preferencesKey);
-		CFArrayRef keys = CFPreferencesCopyKeyList((CFStringRef)preferencesKey, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
-		if (keys) {
-			if (CFArrayGetCount(keys)) {
-				CFDictionaryRef dict = CFPreferencesCopyMultiple(keys, (CFStringRef)preferencesKey, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
-				if (dict) {
-					settings = [(NSDictionary *)dict mutableCopy];
-					skipOnDiskRead = YES;
-					CFRelease(dict);
-				}
-			}
-			CFRelease(keys);
-		}
-	}
-	if (!skipOnDiskRead) {
-		settings = [[NSMutableDictionary alloc] initWithContentsOfFile:settingsPath] ?: [[NSMutableDictionary alloc] init];
-	}
-	[_tableView reloadData];
+    BOOL skipOnDiskRead = NO;
+    if (preferencesKey) {
+        CFPreferencesAppSynchronize((CFStringRef)preferencesKey);
+        CFArrayRef keys = CFPreferencesCopyKeyList((CFStringRef)preferencesKey, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+        if (keys) {
+            if (CFArrayGetCount(keys)) {
+                CFDictionaryRef dict = CFPreferencesCopyMultiple(keys, (CFStringRef)preferencesKey, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+                if (dict) {
+                    settings = [(__bridge NSDictionary *)dict mutableCopy];
+                    skipOnDiskRead = YES;
+                    CFRelease(dict);
+                }
+            }
+            CFRelease(keys);
+        }
+    }
+    if (!skipOnDiskRead) {
+        settings = [[NSMutableDictionary alloc] initWithContentsOfFile:settingsPath] ?: [[NSMutableDictionary alloc] init];
+    }
+    [_tableView reloadData];
 }
 
 static void SettingsChangedNotificationFired(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
 {
-	[(ALApplicationPreferenceViewController *)observer settingsChanged];
+    [(__bridge ALApplicationPreferenceViewController *)observer settingsChanged];
 }
 
 - (void)loadFromSpecifier:(PSSpecifier *)specifier
 {
-     LOG_SELF;
-	[self setNavigationTitle:[specifier propertyForKey:@"ALNavigationTitle"] ?: [specifier name]];
-	singleEnabledMode = [[specifier propertyForKey:@"ALSingleEnabledMode"] boolValue];
+    [self setNavigationTitle:[specifier propertyForKey:@"ALNavigationTitle"] ?: [specifier name]];
+    singleEnabledMode = [[specifier propertyForKey:@"ALSingleEnabledMode"] boolValue];
 
-    [descriptors release];
-	descriptors = [specifier propertyForKey:@"ALSectionDescriptors"];
-	if (descriptors == nil) {
-		NSString *defaultCellClass = singleEnabledMode ? @"ALCheckCell" : @"ALSwitchCell";
-		NSNumber *iconSize = [NSNumber numberWithUnsignedInteger:ALApplicationIconSizeSmall];
-		descriptors = [NSArray arrayWithObjects:
-			[NSDictionary dictionaryWithObjectsAndKeys:
-				@"System Applications", ALSectionDescriptorTitleKey,
-				@"isSystemApplication = TRUE", ALSectionDescriptorPredicateKey,
-				defaultCellClass, ALSectionDescriptorCellClassNameKey,
-				iconSize, ALSectionDescriptorIconSizeKey,
-				(id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
-			nil],
-			[NSDictionary dictionaryWithObjectsAndKeys:
-				@"User Applications", ALSectionDescriptorTitleKey,
-				@"isSystemApplication = FALSE", ALSectionDescriptorPredicateKey,
-				defaultCellClass, ALSectionDescriptorCellClassNameKey,
-				iconSize, ALSectionDescriptorIconSizeKey,
-				(id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
-			nil],
-		nil];
-	}
-	[_dataSource setSectionDescriptors:descriptors];
-    [descriptors retain];
+   descriptors = [specifier propertyForKey:@"ALSectionDescriptors"];
+    if (descriptors == nil) {
+        NSString *defaultCellClass = singleEnabledMode ? @"ALCheckCell" : @"ALSwitchCell";
+        NSNumber *iconSize = [NSNumber numberWithUnsignedInteger:ALApplicationIconSizeSmall];
+        descriptors = [NSArray arrayWithObjects:
+            [NSDictionary dictionaryWithObjectsAndKeys:
+                @"System Applications", ALSectionDescriptorTitleKey,
+                @"isSystemApplication = TRUE", ALSectionDescriptorPredicateKey,
+                defaultCellClass, ALSectionDescriptorCellClassNameKey,
+                iconSize, ALSectionDescriptorIconSizeKey,
+                (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
+            nil],
+            [NSDictionary dictionaryWithObjectsAndKeys:
+                @"User Applications", ALSectionDescriptorTitleKey,
+                @"isSystemApplication = FALSE", ALSectionDescriptorPredicateKey,
+                defaultCellClass, ALSectionDescriptorCellClassNameKey,
+                iconSize, ALSectionDescriptorIconSizeKey,
+                (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
+            nil],
+        nil];
+    }
+    [_dataSource setSectionDescriptors:descriptors];
 
-	NSString *bundlePath = [specifier propertyForKey:@"ALLocalizationBundle"];
-	_dataSource.localizationBundle = bundlePath ? [NSBundle bundleWithPath:bundlePath] : nil;
+    NSString *bundlePath = [specifier propertyForKey:@"ALLocalizationBundle"];
+    _dataSource.localizationBundle = bundlePath ? [NSBundle bundleWithPath:bundlePath] : nil;
 
-	[settingsDefaultValue release];
-	settingsDefaultValue = [[specifier propertyForKey:@"ALSettingsDefaultValue"] retain];
+    settingsDefaultValue = [specifier propertyForKey:@"ALSettingsDefaultValue"];
+    
+    settingsPath = [specifier propertyForKey:@"ALSettingsPath"];
+    if ((kCFCoreFoundationVersionNumber >= 1000) && [settingsPath hasPrefix:@"/var/mobile/Library/Preferences/"] && [settingsPath hasSuffix:@".plist"]) {
+        preferencesKey = [[settingsPath lastPathComponent] stringByDeletingPathExtension];
+    } else {
+        preferencesKey = nil;
+    }
 
-	[settingsPath release];
-	settingsPath = [[specifier propertyForKey:@"ALSettingsPath"] retain];
-	[preferencesKey release];
-	if ((kCFCoreFoundationVersionNumber >= 1000) && [settingsPath hasPrefix:@"/var/mobile/Library/Preferences/"] && [settingsPath hasSuffix:@".plist"]) {
-		preferencesKey = [[[settingsPath lastPathComponent] stringByDeletingPathExtension] retain];
-	} else {
-		preferencesKey = nil;
-	}
+    settingsKeyPrefix = [specifier propertyForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-";
 
-	[settingsKeyPrefix release];
-	settingsKeyPrefix = [[specifier propertyForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-" retain];
+    settings = [[NSMutableDictionary alloc] initWithContentsOfFile:settingsPath] ?: [[NSMutableDictionary alloc] init];
 
-	settings = [[NSMutableDictionary alloc] initWithContentsOfFile:settingsPath] ?: [[NSMutableDictionary alloc] init];
+    if (settingsChangeNotification) {
+        CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge const void *)(self), (CFStringRef)settingsChangeNotification, NULL);
+    }
+    settingsChangeNotification = [specifier propertyForKey:@"ALChangeNotification"];
+    if (settingsChangeNotification) {
+        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge const void *)(self), SettingsChangedNotificationFired, (CFStringRef)settingsChangeNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    }
 
-	if (settingsChangeNotification) {
-		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), self, (CFStringRef)settingsChangeNotification, NULL);
-		[settingsChangeNotification release];
-	}
-	settingsChangeNotification = [specifier propertyForKey:@"ALChangeNotification"];
-	if (settingsChangeNotification) {
-		[settingsChangeNotification retain];
-		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), self, SettingsChangedNotificationFired, (CFStringRef)settingsChangeNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-	}
-
-	id temp = [specifier propertyForKey:@"ALAllowsSelection"];
-	[_tableView setAllowsSelection:temp ? [temp boolValue] : singleEnabledMode];
+    id temp = [specifier propertyForKey:@"ALAllowsSelection"];
+    [_tableView setAllowsSelection:temp ? [temp boolValue] : singleEnabledMode];
 
     [self _updateSections];
-	[_tableView reloadData];
+    [_tableView reloadData];
 }
 
 - (void)setSpecifier:(PSSpecifier *)specifier
 {
-     LOG_SELF;
-	[self loadFromSpecifier:specifier];
-	[super setSpecifier:specifier];
+    [self loadFromSpecifier:specifier];
+    [super setSpecifier:specifier];
 }
 
 - (void)viewWillBecomeVisible:(void *)source
 {
-     LOG_SELF;
-	if (source)
-		[self loadFromSpecifier:(PSSpecifier *)source];
-	[super viewWillBecomeVisible:source];
+    if (source)
+        [self loadFromSpecifier:(__bridge PSSpecifier *)source];
+    [super viewWillBecomeVisible:source];
 }
 
 - (void)setTitle:(NSString *)title
 {
-     LOG_SELF;
-	[super setTitle:[self navigationTitle]];
+    [super setTitle:[self navigationTitle]];
 }
 
 - (UIView *)view
 {
-     LOG_SELF;
-	UIView *result = [super view];
-	if (!_tableView.superview) {
-		_tableView.frame = result.bounds;
-		[_tableView setScrollsToTop:YES];
-		[result addSubview:_tableView];
-		if ([result respondsToSelector:@selector(setScrollsToTop:)]) {
-			[(UIScrollView *)result setScrollsToTop:NO];
-		}
-		if ([result respondsToSelector:@selector(setScrollEnabled:)]) {
-			[(UIScrollView *)result setScrollEnabled:NO];
-		}
+    UIView *result = [super view];
+    if (!_tableView.superview) {
+        _tableView.frame = result.bounds;
+        [_tableView setScrollsToTop:YES];
+        [result addSubview:_tableView];
+        if ([result respondsToSelector:@selector(setScrollsToTop:)]) {
+            [(UIScrollView *)result setScrollsToTop:NO];
+        }
+        if ([result respondsToSelector:@selector(setScrollEnabled:)]) {
+            [(UIScrollView *)result setScrollEnabled:NO];
+        }
 #ifdef __IPHONE_7_0
-		UIViewController *vc = (UIViewController *)self;
-		if ([self respondsToSelector:@selector(setAutomaticallyAdjustsScrollViewInsets:)]) {
-			[vc setAutomaticallyAdjustsScrollViewInsets:NO];
-		}
+        UIViewController *vc = (UIViewController *)self;
+        if ([self respondsToSelector:@selector(setAutomaticallyAdjustsScrollViewInsets:)]) {
+            [vc setAutomaticallyAdjustsScrollViewInsets:NO];
+        }
 #endif
-	}
-	return result;
+    }
+    return result;
 }
 
 #ifdef __IPHONE_7_0
 static UIEdgeInsets EdgeInsetsForViewController(UIViewController *vc)
 {
-	UIEdgeInsets result;
-	if ([vc respondsToSelector:@selector(topLayoutGuide)]) {
-		result.top = vc.topLayoutGuide.length;
-		result.bottom = vc.bottomLayoutGuide.length;
-	} else {
-		result.top = 0.0f;
-		result.bottom = 0.0f;
-	}
-	result.left = 0.0f;
-	result.right = 0.0f;
-	return result;
+    UIEdgeInsets result;
+    if ([vc respondsToSelector:@selector(topLayoutGuide)]) {
+        result.top = vc.topLayoutGuide.length;
+        result.bottom = vc.bottomLayoutGuide.length;
+    } else {
+        result.top = 0.0f;
+        result.bottom = 0.0f;
+    }
+    result.left = 0.0f;
+    result.right = 0.0f;
+    return result;
 }
 - (void)viewDidLayoutSubviews
 {
@@ -327,237 +299,233 @@ static UIEdgeInsets EdgeInsetsForViewController(UIViewController *vc)
 
 - (CGSize)contentSize
 {
-	return [_tableView frame].size;
+    return [_tableView frame].size;
 }
 
 - (void)cellAtIndexPath:(NSIndexPath *)indexPath didChangeToValue:(id)newValue
 {
-     LOG_SELF;
-	id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
-	if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
-		NSString *key = [cellDescriptor objectForKey:@"ALSettingsKey"];
-		[settings setObject:newValue forKey:key];
-		if (preferencesKey) {
-			CFPreferencesSetAppValue((CFStringRef)key, newValue, (CFStringRef)preferencesKey);
-		}
-	} else if (singleEnabledMode) {
-		if ([newValue boolValue]) {
-			[settings setObject:cellDescriptor forKey:settingsKeyPrefix];
-			if (preferencesKey)
-				CFPreferencesSetAppValue((CFStringRef)settingsKeyPrefix, (CFPropertyListRef)cellDescriptor, (CFStringRef)preferencesKey);
-			for (NSIndexPath *otherIndexPath in [_tableView indexPathsForVisibleRows]) {
-				if (![otherIndexPath isEqual:indexPath]) {
-					ALValueCell *otherCell = (ALValueCell *)[_tableView cellForRowAtIndexPath:otherIndexPath];
-					if ([otherCell respondsToSelector:@selector(loadValue:withTitle:)]) {
-						[otherCell loadValue:(id)kCFBooleanFalse withTitle:[self valueTitleForCellAtIndexPath:otherIndexPath]];
-					}
-				}
-			}
-		} else if ([[settings objectForKey:settingsKeyPrefix] isEqual:cellDescriptor]) {
-			[settings removeObjectForKey:settingsKeyPrefix];
-			if (preferencesKey)
-				CFPreferencesSetAppValue((CFStringRef)settingsKeyPrefix, NULL, (CFStringRef)preferencesKey);
-		}
-	} else {
-		NSString *key = [settingsKeyPrefix stringByAppendingString:cellDescriptor ?: @""];
-		[settings setObject:newValue forKey:key];
-		if (preferencesKey)
-			CFPreferencesSetAppValue((CFStringRef)key, newValue, (CFStringRef)preferencesKey);
-	}
-	if (settingsPath)
-		[settings writeToFile:settingsPath atomically:YES];
-	if (preferencesKey)
-		CFPreferencesAppSynchronize((CFStringRef)preferencesKey);
-	if (settingsChangeNotification) {
-		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), self, (CFStringRef)settingsChangeNotification, NULL);
-		notify_post([settingsChangeNotification UTF8String]);
-		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), self, SettingsChangedNotificationFired, (CFStringRef)settingsChangeNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-	}
+    id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
+    if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
+        NSString *key = [cellDescriptor objectForKey:@"ALSettingsKey"];
+        [settings setObject:newValue forKey:key];
+        if (preferencesKey) {
+            CFPreferencesSetAppValue((CFStringRef)key, (__bridge CFPropertyListRef _Nullable)(newValue), (CFStringRef)preferencesKey);
+        }
+    } else if (singleEnabledMode) {
+        if ([newValue boolValue]) {
+            [settings setObject:cellDescriptor forKey:settingsKeyPrefix];
+            if (preferencesKey)
+                CFPreferencesSetAppValue((CFStringRef)settingsKeyPrefix, (CFPropertyListRef)cellDescriptor, (CFStringRef)preferencesKey);
+            for (NSIndexPath *otherIndexPath in [_tableView indexPathsForVisibleRows]) {
+                if (![otherIndexPath isEqual:indexPath]) {
+                    ALValueCell *otherCell = (ALValueCell *)[_tableView cellForRowAtIndexPath:otherIndexPath];
+                    if ([otherCell respondsToSelector:@selector(loadValue:withTitle:)]) {
+                        [otherCell loadValue:(id)kCFBooleanFalse withTitle:[self valueTitleForCellAtIndexPath:otherIndexPath]];
+                    }
+                }
+            }
+        } else if ([[settings objectForKey:settingsKeyPrefix] isEqual:cellDescriptor]) {
+            [settings removeObjectForKey:settingsKeyPrefix];
+            if (preferencesKey)
+                CFPreferencesSetAppValue((CFStringRef)settingsKeyPrefix, NULL, (CFStringRef)preferencesKey);
+        }
+    } else {
+        NSString *key = [settingsKeyPrefix stringByAppendingString:cellDescriptor ?: @""];
+        [settings setObject:newValue forKey:key];
+        if (preferencesKey)
+            CFPreferencesSetAppValue((CFStringRef)key, (__bridge CFPropertyListRef _Nullable)(newValue), (CFStringRef)preferencesKey);
+    }
+    if (settingsPath)
+        [settings writeToFile:settingsPath atomically:YES];
+    if (preferencesKey)
+        CFPreferencesAppSynchronize((CFStringRef)preferencesKey);
+    if (settingsChangeNotification) {
+        CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge const void *)(self), (CFStringRef)settingsChangeNotification, NULL);
+        notify_post([settingsChangeNotification UTF8String]);
+        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge const void *)(self), SettingsChangedNotificationFired, (CFStringRef)settingsChangeNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    }
     [self _updateSections];
 }
 
 - (id)valueForCellAtIndexPath:(NSIndexPath *)indexPath
 {
-     LOG_SELF;
-	id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
-	if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
-		return [settings objectForKey:[cellDescriptor objectForKey:@"ALSettingsKey"]] ?: [cellDescriptor objectForKey:@"ALSettingsDefaultValue"];
-	}
-	if (singleEnabledMode) {
-		return [[settings objectForKey:settingsKeyPrefix] isEqualToString:cellDescriptor] ? (id)kCFBooleanTrue : (id)kCFBooleanFalse;
-	} else {
-		NSString *key = [settingsKeyPrefix stringByAppendingString:cellDescriptor ?: @""];
-		return [settings objectForKey:key] ?: settingsDefaultValue;
-	}
+    id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
+    if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
+        return [settings objectForKey:[cellDescriptor objectForKey:@"ALSettingsKey"]] ?: [cellDescriptor objectForKey:@"ALSettingsDefaultValue"];
+    }
+    if (singleEnabledMode) {
+        return [[settings objectForKey:settingsKeyPrefix] isEqualToString:cellDescriptor] ? (id)kCFBooleanTrue : (id)kCFBooleanFalse;
+    } else {
+        NSString *key = [settingsKeyPrefix stringByAppendingString:cellDescriptor ?: @""];
+        return [settings objectForKey:key] ?: settingsDefaultValue;
+    }
 }
 
 - (id)valueTitleForCellAtIndexPath:(NSIndexPath *)indexPath
 {
-     LOG_SELF;
-	id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
-	if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
-		id value = [[settings objectForKey:[cellDescriptor objectForKey:@"ALSettingsKey"]] ?: [cellDescriptor objectForKey:@"ALSettingsDefaultValue"] description];
-		NSArray *validValues = [cellDescriptor objectForKey:@"validValues"] ?: [settings objectForKey:@"validValues"];
-		NSInteger index = [validValues indexOfObject:value];
-		if (index == NSNotFound)
-			return nil;
-		NSArray *validTitles = [cellDescriptor objectForKey:@"validTitles"] ?: [settings objectForKey:@"validTitles"];
-		if (index >= [validTitles count])
-			return nil;
-		return [validTitles objectAtIndex:index];
-	}
-	id value;
-	if (singleEnabledMode) {
-		value = [[settings objectForKey:settingsKeyPrefix] isEqualToString:cellDescriptor] ? @"1" : @"0";
-	} else {
-		NSString *key = [settingsKeyPrefix stringByAppendingString:cellDescriptor ?: @""];
-		value = [[settings objectForKey:key] ?: settingsDefaultValue description];
-	}
-	NSDictionary *sectionDescriptor = [descriptors objectAtIndex:indexPath.section];
-	NSArray *validValues = [sectionDescriptor objectForKey:@"validValues"] ?: [settings objectForKey:@"validValues"];
-	NSInteger index = [validValues indexOfObject:value];
-	if (index == NSNotFound)
-		return nil;
-	NSArray *validTitles = [sectionDescriptor objectForKey:@"validTitles"] ?: [settings objectForKey:@"validTitles"];
-	if (index >= [validTitles count])
-		return nil;
-	return [validTitles objectAtIndex:index];
+    id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
+    if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
+        id value = [[settings objectForKey:[cellDescriptor objectForKey:@"ALSettingsKey"]] ?: [cellDescriptor objectForKey:@"ALSettingsDefaultValue"] description];
+        NSArray *validValues = [cellDescriptor objectForKey:@"validValues"] ?: [settings objectForKey:@"validValues"];
+        NSInteger index = [validValues indexOfObject:value];
+        if (index == NSNotFound)
+            return nil;
+        NSArray *validTitles = [cellDescriptor objectForKey:@"validTitles"] ?: [settings objectForKey:@"validTitles"];
+        if (index >= [validTitles count])
+            return nil;
+        return [validTitles objectAtIndex:index];
+    }
+    id value;
+    if (singleEnabledMode) {
+        value = [[settings objectForKey:settingsKeyPrefix] isEqualToString:cellDescriptor] ? @"1" : @"0";
+    } else {
+        NSString *key = [settingsKeyPrefix stringByAppendingString:cellDescriptor ?: @""];
+        value = [[settings objectForKey:key] ?: settingsDefaultValue description];
+    }
+    NSDictionary *sectionDescriptor = [descriptors objectAtIndex:indexPath.section];
+    NSArray *validValues = [sectionDescriptor objectForKey:@"validValues"] ?: [settings objectForKey:@"validValues"];
+    NSInteger index = [validValues indexOfObject:value];
+    if (index == NSNotFound)
+        return nil;
+    NSArray *validTitles = [sectionDescriptor objectForKey:@"validTitles"] ?: [settings objectForKey:@"validTitles"];
+    if (index >= [validTitles count])
+        return nil;
+    return [validTitles objectAtIndex:index];
 }
 
 - (void)pushController:(id<PSBaseView>)controller
 {
-     LOG_SELF;
-	[super pushController:controller];
-	[controller setParentController:self];
+    [super pushController:controller];
+    [controller setParentController:self];
 }
 
 static id RecursivelyApplyMacro(id input, NSString *macro, NSString *value);
 
 static NSDictionary *RecursivelyApplyMacroDictionary(NSDictionary *input, NSString *macro, NSString *value) {
-	NSMutableDictionary *result = nil;
-	for (id key in input) {
-		id object = [input objectForKey:key];
-		id newObject = RecursivelyApplyMacro(object, macro, value);
-		if (object != newObject) {
-			if (!result) {
-				result = [[input mutableCopy] autorelease];
-			}
-			[result setObject:newObject forKey:key];
-		}
-	}
-	return result ?: input;
+    NSMutableDictionary *result = nil;
+    for (id key in input) {
+        id object = [input objectForKey:key];
+        id newObject = RecursivelyApplyMacro(object, macro, value);
+        if (object != newObject) {
+            if (!result) {
+                result = [input mutableCopy];
+            }
+            [result setObject:newObject forKey:key];
+        }
+    }
+    return result ?: input;
 }
 
 static NSArray *RecursivelyApplyMacroArray(NSArray *input, NSString *macro, NSString *value) {
-	NSMutableArray *result = nil;
-	NSInteger i = 0;
-	for (id object in input) {
-		id newObject = RecursivelyApplyMacro(object, macro, value);
-		if (object != newObject) {
-			if (!result) {
-				result = [[input mutableCopy] autorelease];
-			}
-			[result replaceObjectAtIndex:i withObject:newObject];
-		}
-		i++;
-	}
-	return result ?: input;
+    NSMutableArray *result = nil;
+    NSInteger i = 0;
+    for (id object in input) {
+        id newObject = RecursivelyApplyMacro(object, macro, value);
+        if (object != newObject) {
+            if (!result) {
+                result = [input mutableCopy];
+            }
+            [result replaceObjectAtIndex:i withObject:newObject];
+        }
+        i++;
+    }
+    return result ?: input;
 }
 
 static NSString *RecursivelyApplyMacroString(NSString *input, NSString *macro, NSString *value) {
-	id result = [input stringByReplacingOccurrencesOfString:macro withString:value];
-	return [result isEqualToString:input] ? input : result;
+    id result = [input stringByReplacingOccurrencesOfString:macro withString:value];
+    return [result isEqualToString:input] ? input : result;
 }
 
 static id RecursivelyApplyMacro(id input, NSString *macro, NSString *value) {
-	if ([input isKindOfClass:[NSString class]])
-		return RecursivelyApplyMacroString(input, macro, value);
-	if ([input isKindOfClass:[NSDictionary class]])
-		return RecursivelyApplyMacroDictionary(input, macro, value);
-	if ([input isKindOfClass:[NSArray class]])
-		return RecursivelyApplyMacroArray(input, macro, value);
-	return input;
+    if ([input isKindOfClass:[NSString class]])
+        return RecursivelyApplyMacroString(input, macro, value);
+    if ([input isKindOfClass:[NSDictionary class]])
+        return RecursivelyApplyMacroDictionary(input, macro, value);
+    if ([input isKindOfClass:[NSArray class]])
+        return RecursivelyApplyMacroArray(input, macro, value);
+    return input;
 }
 
 - (id)appliedValueForKey:(NSString *)key inCellDescriptor:(id)cellDescriptor sectionDescriptor:(NSDictionary *)sectionDescriptor
 {
-	if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
-		return [cellDescriptor objectForKey:key];
-	}
-	if ([cellDescriptor isKindOfClass:[NSString class]]) {
-		NSString *macro = [sectionDescriptor objectForKey:@"display-identifier-macro"];
-		id result = RecursivelyApplyMacro([sectionDescriptor objectForKey:key], macro, cellDescriptor);
-		NSLog(@" = %@", result);
-		return result;
-	}
-	return nil;
+    if ([cellDescriptor isKindOfClass:[NSDictionary class]]) {
+        return [cellDescriptor objectForKey:key];
+    }
+    if ([cellDescriptor isKindOfClass:[NSString class]]) {
+        NSString *macro = [sectionDescriptor objectForKey:@"display-identifier-macro"];
+        id result = RecursivelyApplyMacro([sectionDescriptor objectForKey:key], macro, cellDescriptor);
+        NSLog(@" = %@", result);
+        return result;
+    }
+    return nil;
 }
 
 - (PSSpecifier *)specifierForIndexPath:(NSIndexPath *)indexPath
 {
-	NSInteger section = indexPath.section;
-	[_dataSource waitUntilDate:nil forContentInSectionAtIndex:section];
-	id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
-	if (!cellDescriptor) {
-		NSLog(@"AppList: no cell descriptor for cell!");
-		return nil;
-	}
-	NSDictionary *sectionDescriptor = [_dataSource.sectionDescriptors objectAtIndex:section];
-	NSDictionary *entry = [self appliedValueForKey:@"entry" inCellDescriptor:cellDescriptor sectionDescriptor:sectionDescriptor];
-	if (!entry) {
-		NSLog(@"AppList: entry key missing!");
-		return nil;
-	}
-	NSString *title;
-	if ([cellDescriptor isKindOfClass:[NSString class]]) {
-		title = [[ALApplicationList sharedApplicationList] valueForKey:@"displayName" forDisplayIdentifier:cellDescriptor];
-	} else {
-		title = [cellDescriptor objectForKey:@"text"];
-	}
-	NSArray *specifiers = [self specifiersFromEntry:entry sourcePreferenceLoaderBundlePath:self.specifier.preferenceLoaderBundle.bundlePath title:[title length] ? title : @" "];
-	if ([specifiers count] == 0) {
-		NSLog(@"AppList: preferenceloader failed to load specifier!");
-		return nil;
-	}
-	PSSpecifier *specifier = [specifiers objectAtIndex:0];
-	if ([specifier respondsToSelector:@selector(setIdentifier:)]) {
-		[specifier setIdentifier:[NSString stringWithFormat:@"applist:%ld,%ld", (long)section, (long)indexPath.row]];
-	}
-	return specifier;
+    NSInteger section = indexPath.section;
+    [_dataSource waitUntilDate:nil forContentInSectionAtIndex:section];
+    id cellDescriptor = [_dataSource cellDescriptorForIndexPath:indexPath];
+    if (!cellDescriptor) {
+        NSLog(@"AppList: no cell descriptor for cell!");
+        return nil;
+    }
+    NSDictionary *sectionDescriptor = [_dataSource.sectionDescriptors objectAtIndex:section];
+    NSDictionary *entry = [self appliedValueForKey:@"entry" inCellDescriptor:cellDescriptor sectionDescriptor:sectionDescriptor];
+    if (!entry) {
+        NSLog(@"AppList: entry key missing!");
+        return nil;
+    }
+    NSString *title;
+    if ([cellDescriptor isKindOfClass:[NSString class]]) {
+        title = [[ALApplicationList sharedApplicationList] valueForKey:@"displayName" forDisplayIdentifier:cellDescriptor];
+    } else {
+        title = [cellDescriptor objectForKey:@"text"];
+    }
+    NSArray *specifiers = [self specifiersFromEntry:entry sourcePreferenceLoaderBundlePath:self.specifier.preferenceLoaderBundle.bundlePath title:[title length] ? title : @" "];
+    if ([specifiers count] == 0) {
+        NSLog(@"AppList: preferenceloader failed to load specifier!");
+        return nil;
+    }
+    PSSpecifier *specifier = [specifiers objectAtIndex:0];
+    if ([specifier respondsToSelector:@selector(setIdentifier:)]) {
+        [specifier setIdentifier:[NSString stringWithFormat:@"applist:%ld,%ld", (long)section, (long)indexPath.row]];
+    }
+    return specifier;
 }
 
 - (void)showPreferencesFromCellDescriptor:(id)cellDescriptor sectionDescriptor:(NSDictionary *)sectionDescriptor indexPath:(NSIndexPath *)indexPath
 {
-	PSSpecifier *specifier = [self specifierForIndexPath:indexPath];
-	if (specifier) {
-		[self pushController:[self controllerForSpecifier:specifier]];
-	}
+    PSSpecifier *specifier = [self specifierForIndexPath:indexPath];
+    if (specifier) {
+        [self pushController:[self controllerForSpecifier:specifier]];
+    }
 }
 
 - (void)launchURLFromCellDescriptor:(id)cellDescriptor sectionDescriptor:(NSDictionary *)sectionDescriptor
 {
-	NSString *url = [self appliedValueForKey:@"url" inCellDescriptor:cellDescriptor sectionDescriptor:sectionDescriptor];
-	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:url]];
+    NSString *url = [self appliedValueForKey:@"url" inCellDescriptor:cellDescriptor sectionDescriptor:sectionDescriptor];
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:url]];
 }
 
 /*- (UIPreferencesTable *)table
 {
-	return nil;
+    return nil;
 }*/
 
 - (PSSpecifier *)specifierForID:(NSString *)identifier
 {
-	if ([identifier hasPrefix:@"applist:"]) {
-		NSArray *components = [[identifier substringFromIndex:8] componentsSeparatedByString:@","];
-		if ([components count] == 2) {
-			NSIndexPath *indexPath = [NSIndexPath indexPathForRow:[[components objectAtIndex:1] integerValue] inSection:[[components objectAtIndex:0] integerValue]];
-			PSSpecifier *result = [self specifierForIndexPath:indexPath];
-			if (result) {
-				return result;
-			}
-		}
-	}
-	return [super specifierForID:identifier];
+    if ([identifier hasPrefix:@"applist:"]) {
+        NSArray *components = [[identifier substringFromIndex:8] componentsSeparatedByString:@","];
+        if ([components count] == 2) {
+            NSIndexPath *indexPath = [NSIndexPath indexPathForRow:[[components objectAtIndex:1] integerValue] inSection:[[components objectAtIndex:0] integerValue]];
+            PSSpecifier *result = [self specifierForIndexPath:indexPath];
+            if (result) {
+                return result;
+            }
+        }
+    }
+    return [super specifierForID:identifier];
 }
 
 @end
@@ -566,54 +534,52 @@ static id RecursivelyApplyMacro(id input, NSString *macro, NSString *value) {
 
 - (id)initWithController:(ALApplicationPreferenceViewController *)controller
 {
-	if ((self = [super init])) {
-		_controller = controller;
-	}
-	return self;
+    if ((self = [super init])) {
+        _controller = controller;
+    }
+    return self;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-	id cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
-	if ([cell isKindOfClass:[ALValueCell class]]) {
-		[(ALValueCell *)cell setDelegate:self];
-		[(ALValueCell *)cell loadValue:[_controller valueForCellAtIndexPath:indexPath] withTitle:[_controller valueTitleForCellAtIndexPath:indexPath]];
-	}
-	return cell;
+    id cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
+    if ([cell isKindOfClass:[ALValueCell class]]) {
+        [(ALValueCell *)cell setDelegate:self];
+        [(ALValueCell *)cell loadValue:[_controller valueForCellAtIndexPath:indexPath] withTitle:[_controller valueTitleForCellAtIndexPath:indexPath]];
+    }
+    return cell;
 }
 
 - (void)valueCell:(ALValueCell *)valueCell didChangeToValue:(id)newValue
 {
-	[_controller cellAtIndexPath:[self.tableView indexPathForCell:valueCell] didChangeToValue:newValue];
+    [_controller cellAtIndexPath:[self.tableView indexPathForCell:valueCell] didChangeToValue:newValue];
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    LOG_SELF;
-	id cell = [tableView cellForRowAtIndexPath:indexPath];
-	if ([cell respondsToSelector:@selector(didSelect)])
-		[cell didSelect];
-	id cellDescriptor = [self cellDescriptorForIndexPath:indexPath];
-	if (cellDescriptor) {
-		NSDictionary *sectionDescriptor = [self.sectionDescriptors objectAtIndex:indexPath.section];
-		NSString *stringAction = [_controller appliedValueForKey:@"action" inCellDescriptor:cellDescriptor sectionDescriptor:sectionDescriptor];
-        NSLog(@"stringAction: %@", stringAction);
-		SEL action = NSSelectorFromString([stringAction stringByAppendingString:@"FromCellDescriptor:sectionDescriptor:indexPath:"]);
-		if ([_controller respondsToSelector:action]) {
-			((void (*)(ALApplicationPreferenceViewController *, SEL, id, NSDictionary *, NSIndexPath *))objc_msgSend)(_controller, action, cellDescriptor, sectionDescriptor, indexPath);
-		} else {
-			action = NSSelectorFromString([stringAction stringByAppendingString:@"FromCellDescriptor:sectionDescriptor:"]);
-			if ([_controller respondsToSelector:action]) {
-				((void (*)(ALApplicationPreferenceViewController *, SEL, id, NSDictionary *))objc_msgSend)(_controller, action, cellDescriptor, sectionDescriptor);
-			} else {
-				action = NSSelectorFromString([stringAction stringByAppendingString:@"FromCellDescriptor:"]);
-				if ([_controller respondsToSelector:action]) {
-					((void (*)(ALApplicationPreferenceViewController *, SEL, id))objc_msgSend)(_controller, action, cellDescriptor);
-				}
-			}
-		}
-	}
-	[tableView deselectRowAtIndexPath:indexPath animated:YES];
+    id cell = [tableView cellForRowAtIndexPath:indexPath];
+    if ([cell respondsToSelector:@selector(didSelect)])
+        [cell didSelect];
+    id cellDescriptor = [self cellDescriptorForIndexPath:indexPath];
+    if (cellDescriptor) {
+        NSDictionary *sectionDescriptor = [self.sectionDescriptors objectAtIndex:indexPath.section];
+        NSString *stringAction = [_controller appliedValueForKey:@"action" inCellDescriptor:cellDescriptor sectionDescriptor:sectionDescriptor];
+        SEL action = NSSelectorFromString([stringAction stringByAppendingString:@"FromCellDescriptor:sectionDescriptor:indexPath:"]);
+        if ([_controller respondsToSelector:action]) {
+            ((void (*)(ALApplicationPreferenceViewController *, SEL, id, NSDictionary *, NSIndexPath *))objc_msgSend)(_controller, action, cellDescriptor, sectionDescriptor, indexPath);
+        } else {
+            action = NSSelectorFromString([stringAction stringByAppendingString:@"FromCellDescriptor:sectionDescriptor:"]);
+            if ([_controller respondsToSelector:action]) {
+                ((void (*)(ALApplicationPreferenceViewController *, SEL, id, NSDictionary *))objc_msgSend)(_controller, action, cellDescriptor, sectionDescriptor);
+            } else {
+                action = NSSelectorFromString([stringAction stringByAppendingString:@"FromCellDescriptor:"]);
+                if ([_controller respondsToSelector:action]) {
+                    ((void (*)(ALApplicationPreferenceViewController *, SEL, id))objc_msgSend)(_controller, action, cellDescriptor);
+                }
+            }
+        }
+    }
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
 
 @end
