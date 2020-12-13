@@ -1,9 +1,10 @@
 Package: applist
 Name: AppList
-Version: 0.0.1
+Version: 1.0
 Architecture: appletvos-arm64
-Description: An awesome library of some sort!!
+Description: Allow extensions to read the list of installed apps, for tvOS!
 Maintainer: Kevin Bradley
-Author: Kevin Bradley
+Author: Kevin Bradley & Ryan Petrich
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader (>= 1.4-1)
 Section: System
 Tag: role::developer
