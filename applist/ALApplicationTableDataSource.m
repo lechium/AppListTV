@@ -79,7 +79,7 @@ static UIImage *defaultImage;
 + (void)initialize
 {
 	if (self == [ALApplicationTableDataSourceSection class]) {
-		defaultImage = [[ALApplicationList sharedApplicationList] iconOfSize:ALApplicationIconSizeSmall forDisplayIdentifier:@"com.apple.WebSheet"];
+		defaultImage = [[ALApplicationList sharedApplicationList] iconOfSize:ALApplicationIconSizeLarge forDisplayIdentifier:@"com.apple.WebSheet"];
 	}
 }
 
@@ -328,7 +328,7 @@ static inline UITableViewCell *CellWithClassName(NSString *className, UITableVie
 
 + (NSArray *)standardSectionDescriptors
 {
-	NSNumber *iconSize = [NSNumber numberWithUnsignedInteger:ALApplicationIconSizeSmall];
+	NSNumber *iconSize = [NSNumber numberWithUnsignedInteger:ALApplicationIconSizeLarge];
 	return [NSArray arrayWithObjects:
 		[NSDictionary dictionaryWithObjectsAndKeys:
 			@"System Applications", ALSectionDescriptorTitleKey,
