@@ -3,8 +3,8 @@
 #import <libkern/OSAtomic.h>
 
 enum {
-	ALApplicationIconSizeSmall = 150,
-	ALApplicationIconSizeLarge = 300
+	ALApplicationIconSizeSmall = 300,
+	ALApplicationIconSizeLarge = 540
 };
 typedef NSUInteger ALApplicationIconSize;
 

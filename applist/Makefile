@@ -1,4 +1,5 @@
 target = appletv
+THEOS_DEVICE_IP = 13tv.local
 include $(THEOS)/makefiles/common.mk
 
 LIBRARY_NAME = libapplist

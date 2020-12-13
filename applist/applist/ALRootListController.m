@@ -30,7 +30,11 @@
     NSDictionary *apps = [list applications];
     NSDictionary *spec = [self specifier];
     //NSString *navTitle = spec[@"ALNavigationTitle"];
-    NSString *settingsDefaultValue = spec[@"ALSettingsDefaultValue"];
+    id settingsDefaultValue = spec[@"ALSettingsDefaultValue"];
+    if ([settingsDefaultValue respondsToSelector:@selector(length)]){
+        NSNumber *number = [NSNumber numberWithInteger:[settingsDefaultValue integerValue]];
+        settingsDefaultValue = number;
+    }
     NSString *settingsPath = spec[@"ALSettingsPath"];
     if ((kCFCoreFoundationVersionNumber >= 1000) && [settingsPath hasPrefix:@"/var/mobile/Library/Preferences/"] && [settingsPath hasSuffix:@".plist"]) {
         _domain = [[settingsPath lastPathComponent] stringByDeletingPathExtension];
@@ -40,13 +44,14 @@
     NSLog(@"app domain: %@", _domain);
     //BOOL singleEnabledMode = [spec[@"ALSingleEnabledMode"] boolValue];
     NSString *settingsKeyPrefix = spec[@"ALSettingsKeyPrefix"];
-    id facade = [[NSClassFromString(@"TVSettingsPreferenceFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
+    id facade = [[NSClassFromString(@"TSKPreferencesFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
     
     [apps enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         NSString *settingsKey = [settingsKeyPrefix stringByAppendingString:obj];
         TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:@"On" offTitle:@"Off"];
         NSLog(@"settings default value: %@", settingsDefaultValue);
         [item setDefaultValue:settingsDefaultValue];
+        
         if ([facade valueForUndefinedKey:settingsKey] == nil){
             [facade setValue:settingsDefaultValue forUndefinedKey:settingsKey];
         }
