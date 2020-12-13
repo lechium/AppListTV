@@ -22,12 +22,12 @@
 
 }
 
-@property (readonly) unsigned long long hash; 
+@property (readonly) NSUInteger hash; 
 @property (readonly) Class superclass; 
 @property (copy,readonly) NSString * description; 
 @property (copy,readonly) NSString * debugDescription; 
 @property (nonatomic,retain) TSKSettingItem * editingItem;                                                    //@synthesize editingItem=_editingItem - In the implementation block
-@property (assign,nonatomic,weak) id<TSKSettingItemEditingControllerDelegate> editingDelegate;              //@synthesize editingDelegate=_editingDelegate - In the implementation block
+@property (nonatomic,weak) id<TSKSettingItemEditingControllerDelegate> editingDelegate;              //@synthesize editingDelegate=_editingDelegate - In the implementation block
 +(id)multiValueControllerWithSettingItem:(id)arg1 ;
 -(void)setEditingDelegate:(id<TSKSettingItemEditingControllerDelegate>)arg1 ;
 -(id<TSKSettingItemEditingControllerDelegate>)editingDelegate;

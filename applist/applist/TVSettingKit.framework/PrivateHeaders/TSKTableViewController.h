@@ -35,11 +35,11 @@
 @property (nonatomic,retain) UITableView * tableView;  //is really TSKTableView                      //@synthesize tableView=_tableView - In the implementation block
 @property (assign,nonatomic) double tableViewWidth;                                                  //@synthesize tableViewWidth=_tableViewWidth - In the implementation block
 @property (assign,nonatomic) UIEdgeInsets tableViewPadding;                                          //@synthesize tableViewPadding=_tableViewPadding - In the implementation block
-//@property (readonly) unsigned long long hash; 
+//@property (readonly) NSUInteger hash; 
 @property (readonly) Class superclass; 
 @property (copy,readonly) NSString * description; 
 @property (copy,readonly) NSString * debugDescription; 
-@property (assign,nonatomic,weak) id<TSKPreviewingDelegate> previewingDelegate;                    //@synthesize previewingDelegate=_previewingDelegate - In the implementation block
+@property (nonatomic,weak) id<TSKPreviewingDelegate> previewingDelegate;                    //@synthesize previewingDelegate=_previewingDelegate - In the implementation block
 +(id)_productImage;
 -(void)tableView:(id)arg1 didUpdateFocusInContext:(id)arg2 withAnimationCoordinator:(id)arg3 ;
 -(void)loadView;

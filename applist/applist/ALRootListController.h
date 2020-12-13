@@ -1,16 +1,14 @@
-#import "Common.h"
-
-// statically call the item
-TSKSettingItem *kEnabled;
-
-// Respring Button
-TSKSettingItem *kRespringButton;
+//#import "Common.h"
+#import <TVSettingKit/TVSettingKit.h>
 
 // Make sure our path is specified so our tweak knows where to store all of the settings :)
 #define PLIST_PATH @"/var/mobile/Library/Preferences/com.nito.applist.plist"
 
 //preferences interface notice that it is of Tyoe TSKViewController and not of PSListController!
 @interface ALRootListController : TSKViewController
+
+@property (nonatomic, strong) NSDictionary *specifier;
+
 @end
 
 

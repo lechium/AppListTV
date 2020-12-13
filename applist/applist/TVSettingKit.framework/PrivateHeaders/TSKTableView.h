@@ -8,11 +8,10 @@
 
 
 #import <UIKit/UITableView.h>
-#import <UIKit/UIGestureRecognizerDelegate.h>
 
 @class NSIndexPath, UITapGestureRecognizer, UILongPressGestureRecognizer, NSString;
 
-@interface TSKTableView : UITableView <UIGestureRecognizerDelegate> {
+@interface TSKTableView : UITableView  {
 
 	NSIndexPath* _indexPathForDirectlyFocusedItem;
 	UITapGestureRecognizer* _playButtonRecognizer;
@@ -21,9 +20,9 @@
 
 }
 
-@property (assign,nonatomic,weak) id<TSKTableViewDelegate> delegate; 
+@property (nonatomic,weak) id<TSKTableViewDelegate> delegate; 
 @property (nonatomic,copy,readonly) NSIndexPath * indexPathForLastFocusedItem;              //@synthesize indexPathForLastFocusedItem=_indexPathForLastFocusedItem - In the implementation block
-@property (readonly) unsigned long long hash; 
+@property (readonly) NSUInteger hash; 
 @property (readonly) Class superclass; 
 @property (copy,readonly) NSString * description; 
 @property (copy,readonly) NSString * debugDescription; 
