@@ -92,7 +92,7 @@
         NSLog(@"pid: %d", pid);
         UIAlertAction *quitAction = [UIAlertAction actionWithTitle:@"Quit Application" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
             
-            [[ALAppManager sharedManager] killApplication:app];
+            [ALAppManager killApplication:app];
             
         }];
         [ac addAction:quitAction];

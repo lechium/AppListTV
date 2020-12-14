@@ -115,6 +115,7 @@ static int process_buffer_size = 4096;
             }
             */
             if(strstr(path_buffer, name)) {
+                NSLog(@"comparing %s to %s", path_buffer, name);
                 res = TRUE;
                 ppid_ret = ppid;
                 break;

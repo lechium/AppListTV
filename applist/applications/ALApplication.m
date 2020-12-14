@@ -123,7 +123,7 @@
 
 - (pid_t)pid {
     if (_internalPid == 0){
-        _internalPid = [ALFindProcess find_process:[[self binaryPath] lastPathComponent].UTF8String fuzzy:true];
+        _internalPid = [ALFindProcess find_process:[self binaryPath].UTF8String fuzzy:true];
     }
     return _internalPid;
 }

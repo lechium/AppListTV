@@ -130,7 +130,7 @@ static NSInteger DictionaryTextComparator(id a, id b, void *context) {
     return CGImageRetain([image CGImage]);
 }
 - (UIImage *)iconOfSize:(ALApplicationIconSize)iconSize forDisplayIdentifier:(NSString *)displayIdentifier {
-
+    
     CGImageRef image = [self copyIconOfSize:iconSize forDisplayIdentifier:displayIdentifier];
     if (!image)
         return nil;
