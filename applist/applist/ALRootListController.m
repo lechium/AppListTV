@@ -1,5 +1,6 @@
 #import "ALRootListController.h"
 #import "ALApplicationList.h"
+#import "ALAppManager.h"
 #import "TVSPreferences.h"
 @interface ALRootListController()
 
@@ -12,14 +13,14 @@
 
 /*
  
-     settingsKeyPrefix = [specifier propertyForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-";
-
-     settings = [[NSMutableDictionary alloc] initWithContentsOfFile:settingsPath] ?: [[NSMutableDictionary alloc] init];
-
+ settingsKeyPrefix = [specifier propertyForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-";
  
-     id temp = [specifier propertyForKey:@"ALAllowsSelection"];
-     [_tableView setAllowsSelection:temp ? [temp boolValue] : singleEnabledMode];
-
+ settings = [[NSMutableDictionary alloc] initWithContentsOfFile:settingsPath] ?: [[NSMutableDictionary alloc] init];
+ 
+ 
+ id temp = [specifier propertyForKey:@"ALAllowsSelection"];
+ [_tableView setAllowsSelection:temp ? [temp boolValue] : singleEnabledMode];
+ 
  }
  */
 
@@ -55,7 +56,8 @@
         TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
         NSLog(@"settings default value: %@", settingsDefaultValue);
         [item setDefaultValue:settingsDefaultValue];
-        
+        [item setTarget:self];
+        [item setLongPressAction:@selector(longPressAction:)];
         if ([facade valueForUndefinedKey:settingsKey] == nil){
             [facade setValue:settingsDefaultValue forUndefinedKey:settingsKey];
         }
@@ -78,6 +80,40 @@
     
 }
 
+- (void)longPressAction:(TSKSettingItem *)item {
+    NSLog(@"long press occured: %@", item);
+    
+    NSString *ident = [item localizedDescription];
+    ALApplication *app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
+    
+    UIAlertController *ac = [UIAlertController alertControllerWithTitle:[item localizedTitle] message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    pid_t pid = [app pid];
+    if (pid != 0){
+        NSLog(@"pid: %d", pid);
+        UIAlertAction *quitAction = [UIAlertAction actionWithTitle:@"Quit Application" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
+            
+            [[ALAppManager sharedManager] killApplication:app];
+            
+        }];
+        [ac addAction:quitAction];
+    }
+    
+    
+    UIAlertAction *open = [UIAlertAction actionWithTitle:@"Open" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        
+        [[ALAppManager sharedManager] launchApplication:app];
+        
+    }];
+    
+    UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
+    
+    [ac addAction:open];
+    [ac addAction:cancel];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self presentViewController:ac animated:TRUE completion:nil];
+    });
+}
 
 
 // this is to make sure our preferences our loaded

@@ -8,6 +8,7 @@
 - (NSDictionary *)rawDaemonDetails;
 - (void)setNeedsRefresh;
 + (int)killProcess:(NSString *)processName;
++ (int)killApplication:(ALApplication *)app;
 - (void)launchApplication:(ALApplication *)app;
 - (NSArray <ALApplication *> *)applicationsFromArray:(NSArray *)applications filterHidden:(BOOL)filter;
 - (BOOL)deleteApplication:(ALApplication *)app;
