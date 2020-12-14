@@ -5,6 +5,7 @@
 @interface ALRootListController()
 
 @property NSString *domain;
+@property NSString *groupTitle;
 @end
 
 // All preferences on tvOS are added in programatically in groups.
@@ -28,9 +29,27 @@
     
     __block NSMutableArray *_apps = [NSMutableArray new];
     ALApplicationList *list = [ALApplicationList sharedApplicationList];
-    NSDictionary *apps = [list applications];
+    
     NSDictionary *spec = [self specifier];
+    NSArray *sectionDescriptors = spec[@"ALSectionDescriptors"];
     NSString *navTitle = spec[@"ALNavigationTitle"];
+    NSPredicate *predicate = nil;
+    BOOL onlyVisible = true;
+    if ([sectionDescriptors count] > 0){
+        //for now just handle the first one
+        NSDictionary *firstDesc = [sectionDescriptors firstObject];
+        NSString *predicateText = firstDesc[@"predicate"];
+        predicate = predicateText ? [NSPredicate predicateWithFormat:predicateText] : nil;//firstDesc[@"predicate"];
+        if ([[firstDesc allKeys] containsObject:@"suppress-hidden-apps"]){
+            onlyVisible = [firstDesc[@"suppress-hidden-apps"] boolValue];
+        }
+        NSString *_gt = firstDesc[@"title"];
+        if (_gt){
+            self.groupTitle = _gt;
+        }
+    }
+    NSDictionary *apps = [list applicationsFilteredUsingPredicate:predicate onlyVisible:onlyVisible titleSortedIdentifiers:nil];
+    
     if (!navTitle){
         navTitle = spec[@"label"];
     }
@@ -70,9 +89,10 @@
 // Lets load our prefs!
 - (id)loadSettingGroups {
     
+    self.groupTitle = @"Applications";
     NSMutableArray *_backingArray = [NSMutableArray new];
     NSArray *items = [self applicationsFromAppList];
-    TSKSettingGroup *group = [TSKSettingGroup groupWithTitle:@"Applications" settingItems:items];
+    TSKSettingGroup *group = [TSKSettingGroup groupWithTitle:self.groupTitle settingItems:items];
     [_backingArray addObject:group];
     [self setValue:_backingArray forKey:@"_settingGroups"];
     
@@ -87,6 +107,13 @@
     ALApplication *app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
     
     UIAlertController *ac = [UIAlertController alertControllerWithTitle:[item localizedTitle] message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    
+    UIAlertAction *open = [UIAlertAction actionWithTitle:@"Open" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        
+        [[ALAppManager sharedManager] launchApplication:app];
+        
+    }];
+    
     pid_t pid = [app pid];
     if (pid != 0){
         NSLog(@"pid: %d", pid);
@@ -98,12 +125,6 @@
         [ac addAction:quitAction];
     }
     
-    
-    UIAlertAction *open = [UIAlertAction actionWithTitle:@"Open" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        
-        [[ALAppManager sharedManager] launchApplication:app];
-        
-    }];
     
     UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
     
@@ -131,6 +152,8 @@
     NSString *desc = [currentItem localizedDescription];
     //NSString *desc = [item descriptionText];
     item = [[TSKAppIconPreviewViewController alloc] initWithApplicationBundleIdentifier:desc];
+    NSString *appDetails = [NSString stringWithFormat:@"%@\n\nLong press for more options.", desc];
+    [item setDescriptionText:appDetails];
     return item;
 }
 
