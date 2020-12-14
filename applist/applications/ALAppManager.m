@@ -12,6 +12,9 @@
 
 @implementation ALAppManager
 
+- (NSInteger)lazyApplicationCount {
+    return [[[self defaultWorkspace] allInstalledApplications] count];
+}
 
 + (id)sharedManager {
     static dispatch_once_t onceToken;
@@ -105,12 +108,8 @@
     
     int status = 0;
     if (app.uid == 0){
-        
-        NSString *runString = [NSString stringWithFormat:@"/usr/libexec/goNito /usr/bin/killall -9 %@", app.name ];
-        [[self sharedManager] runProcess:runString withCompletion:^(NSString *output, NSInteger returnStatus) {
-            NSLog(@"runString: %@ exited with status: %lu", runString, returnStatus);
-            NSLog(@"returned: %@", output);
-        }];
+        NSLog(@"can't kill privledged processes!");
+        return -1;
     } else {
         status = kill([app pid], 9);
         
@@ -148,8 +147,8 @@
 
 + (int)killAllProcesses:(NSArray <ALRunningProcess *> *)metas root:(BOOL)priv{
     if (priv == true){
-        NSString *name = [metas firstObject].name;
-        [self arrayReturnForTask:@"/usr/libexec/goNito" withArguments:@[@"/usr/bin/killall",@"-9",name]];
+        NSLog(@"can't kill privledged processes!");
+        return -1;
     } else {
         [metas enumerateObjectsUsingBlock:^(ALRunningProcess * _Nonnull proc, NSUInteger idx, BOOL * _Nonnull stop) {
             int status = kill([proc pid], 9);

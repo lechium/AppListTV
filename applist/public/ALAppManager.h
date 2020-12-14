@@ -20,6 +20,7 @@
 + (NSString *)userForID:(NSInteger)uid;
 + (NSString *)groupForID:(NSInteger)gid;
 - (ALApplication *)applicationWithDisplayIdentifier:(NSString *)identifier;
+- (NSInteger)lazyApplicationCount;
 @end
 
 

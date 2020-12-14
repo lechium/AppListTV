@@ -58,7 +58,7 @@ static NSInteger DictionaryTextComparator(id a, id b, void *context) {
 }
 
 - (NSInteger)applicationCount {
-    return [[[ALAppManager sharedManager] allInstalledApplications] count];
+    return [[ALAppManager sharedManager] lazyApplicationCount];
 }
 
 - (NSString *)description {
