@@ -10,6 +10,20 @@
 
 // All preferences on tvOS are added in programatically in groups.
 
+const NSString *ALSectionDescriptorTitleKey = @"title";
+const NSString *ALSectionDescriptorFooterTitleKey = @"footer-title";
+const NSString *ALSectionDescriptorPredicateKey = @"predicate";
+const NSString *ALSectionDescriptorCellClassNameKey = @"cell-class-name";
+const NSString *ALSectionDescriptorIconSizeKey = @"icon-size";
+const NSString *ALSectionDescriptorItemsKey = @"items";
+const NSString *ALSectionDescriptorSuppressHiddenAppsKey = @"suppress-hidden-apps";
+const NSString *ALSectionDescriptorVisibilityPredicateKey = @"visibility-predicate";
+
+const NSString *ALItemDescriptorTextKey = @"text";
+const NSString *ALItemDescriptorDetailTextKey = @"detail-text";
+const NSString *ALItemDescriptorImageKey = @"image";
+
+
 @implementation ALRootListController
 
 /*
@@ -38,10 +52,10 @@
     if ([sectionDescriptors count] > 0){
         //for now just handle the first one
         NSDictionary *firstDesc = [sectionDescriptors firstObject];
-        NSString *predicateText = firstDesc[@"predicate"];
-        predicate = predicateText ? [NSPredicate predicateWithFormat:predicateText] : nil;//firstDesc[@"predicate"];
-        if ([[firstDesc allKeys] containsObject:@"suppress-hidden-apps"]){
-            onlyVisible = [firstDesc[@"suppress-hidden-apps"] boolValue];
+        NSString *predicateText = firstDesc[ALSectionDescriptorPredicateKey];
+        predicate = predicateText ? [NSPredicate predicateWithFormat:predicateText] : nil;
+        if ([[firstDesc allKeys] containsObject:ALSectionDescriptorSuppressHiddenAppsKey]){
+            onlyVisible = [firstDesc[ALSectionDescriptorSuppressHiddenAppsKey] boolValue];
         }
         NSString *_gt = firstDesc[@"title"];
         if (_gt){
