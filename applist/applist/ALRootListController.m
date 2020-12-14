@@ -23,8 +23,35 @@ const NSString *ALItemDescriptorTextKey = @"text";
 const NSString *ALItemDescriptorDetailTextKey = @"detail-text";
 const NSString *ALItemDescriptorImageKey = @"image";
 
+@interface ALRootListController() {
+    NSString *_navigationTitle;
+    NSArray *descriptors;
+    id settingsDefaultValue;
+    NSString *settingsPath;
+    NSString *preferencesKey;
+    NSMutableDictionary *settings;
+    NSString *settingsKeyPrefix;
+    BOOL singleEnabledMode;
+}
+@end
 
 @implementation ALRootListController
+
++ (NSArray *)standardSectionDescriptors
+{
+    return [NSArray arrayWithObjects:
+        [NSDictionary dictionaryWithObjectsAndKeys:
+            @"System Applications", ALSectionDescriptorTitleKey,
+            @"isSystemApplication = TRUE", ALSectionDescriptorPredicateKey,
+            (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
+        nil],
+        [NSDictionary dictionaryWithObjectsAndKeys:
+            @"User Applications", ALSectionDescriptorTitleKey,
+            @"isSystemApplication = FALSE", ALSectionDescriptorPredicateKey,
+            (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
+        nil],
+    nil];
+}
 
 /*
  
@@ -68,12 +95,12 @@ const NSString *ALItemDescriptorImageKey = @"image";
         navTitle = spec[@"label"];
     }
     self.title = navTitle;
-    id settingsDefaultValue = spec[@"ALSettingsDefaultValue"];
+    settingsDefaultValue = spec[@"ALSettingsDefaultValue"];
     if ([settingsDefaultValue respondsToSelector:@selector(length)]){
         NSNumber *number = [NSNumber numberWithInteger:[settingsDefaultValue integerValue]];
         settingsDefaultValue = number;
     }
-    NSString *settingsPath = spec[@"ALSettingsPath"];
+    settingsPath = spec[@"ALSettingsPath"];
     if ((kCFCoreFoundationVersionNumber >= 1000) && [settingsPath hasPrefix:@"/var/mobile/Library/Preferences/"] && [settingsPath hasSuffix:@".plist"]) {
         _domain = [[settingsPath lastPathComponent] stringByDeletingPathExtension];
     } else {
@@ -81,7 +108,7 @@ const NSString *ALItemDescriptorImageKey = @"image";
     }
     NSLog(@"app domain: %@", _domain);
     //BOOL singleEnabledMode = [spec[@"ALSingleEnabledMode"] boolValue];
-    NSString *settingsKeyPrefix = spec[@"ALSettingsKeyPrefix"];
+    settingsKeyPrefix = spec[@"ALSettingsKeyPrefix"];
     id facade = [[NSClassFromString(@"TSKPreferencesFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
     
     [apps enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {

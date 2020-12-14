@@ -6,9 +6,9 @@
 
 //preferences interface notice that it is of Tyoe TSKViewController and not of PSListController!
 @interface ALRootListController : TSKViewController
-
++ (NSArray *)standardSectionDescriptors;
 @property (nonatomic, strong) NSDictionary *specifier;
-
+@property (nonatomic, copy) NSArray *sectionDescriptors;
 @end
 
 
