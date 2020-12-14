@@ -40,17 +40,17 @@ const NSString *ALItemDescriptorImageKey = @"image";
 + (NSArray *)standardSectionDescriptors
 {
     return [NSArray arrayWithObjects:
-        [NSDictionary dictionaryWithObjectsAndKeys:
-            @"System Applications", ALSectionDescriptorTitleKey,
-            @"isSystemApplication = TRUE", ALSectionDescriptorPredicateKey,
-            (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
-        nil],
-        [NSDictionary dictionaryWithObjectsAndKeys:
-            @"User Applications", ALSectionDescriptorTitleKey,
-            @"isSystemApplication = FALSE", ALSectionDescriptorPredicateKey,
-            (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
-        nil],
-    nil];
+            [NSDictionary dictionaryWithObjectsAndKeys:
+             @"System Applications", ALSectionDescriptorTitleKey,
+             @"isSystemApplication = TRUE", ALSectionDescriptorPredicateKey,
+             (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
+             nil],
+            [NSDictionary dictionaryWithObjectsAndKeys:
+             @"User Applications", ALSectionDescriptorTitleKey,
+             @"isSystemApplication = FALSE", ALSectionDescriptorPredicateKey,
+             (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
+             nil],
+            nil];
 }
 
 /*
@@ -154,7 +154,7 @@ const NSString *ALItemDescriptorImageKey = @"image";
         [[ALAppManager sharedManager] launchApplication:app];
         
     }];
-    
+    [ac addAction:open];
     pid_t pid = [app pid];
     if (pid != 0){
         NSLog(@"pid: %d", pid);
@@ -166,10 +166,7 @@ const NSString *ALItemDescriptorImageKey = @"image";
         [ac addAction:quitAction];
     }
     
-    
     UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
-    
-    [ac addAction:open];
     [ac addAction:cancel];
     
     dispatch_async(dispatch_get_main_queue(), ^{
