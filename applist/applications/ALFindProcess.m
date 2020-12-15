@@ -13,6 +13,8 @@ static int process_buffer_size = 4096;
     BOOL _needsRefresh;
 }
 
+@end
+
 @implementation ALFindProcess
 
 + (NSArray <NSNumber *> *)childProcessIds:(pid_t)pid{
@@ -34,8 +36,7 @@ static int process_buffer_size = 4096;
 
 + (int)totalProcessCount {
     pid_t *pid_buffer;
-    char path_buffer[MAXPATHLEN];
-    int count, i, ret;
+    int count;
     pid_buffer = (pid_t*)calloc(1, process_buffer_size);
     assert(pid_buffer != NULL);
     count = proc_listallpids(pid_buffer, process_buffer_size);
@@ -43,7 +44,7 @@ static int process_buffer_size = 4096;
     return count;
 }
 
-+ (NSArray <ALRunningProcess *> *)allRunningProcesses{
++ (NSArray <ALRunningProcess *> *)allRunningProcesses {
     
     pid_t *pid_buffer;
     char path_buffer[MAXPATHLEN];
