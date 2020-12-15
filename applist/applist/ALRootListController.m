@@ -36,7 +36,7 @@ const NSString *ALItemDescriptorImageKey = @"image";
 
 //tvOS
 const NSString *ALItemSupportsLongPress = @"supports-long-press";
-const NSString *ALAllProcessesMode  = @"all-processes-mode";
+const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
 const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 @interface ALRootListController() {
@@ -169,6 +169,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         supportsLongPress = [spec[ALItemSupportsLongPress] boolValue];
     }
     if ([[spec allKeys] containsObject:ALAllProcessesMode]){
+        NSLog(@"all processes mode!");
         allProcessesMode = [spec[ALAllProcessesMode] boolValue];
     }
     //this was well intentioned by keyPath / key gets screwy because of the periods in the bundleId

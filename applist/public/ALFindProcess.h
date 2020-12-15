@@ -9,6 +9,7 @@
 + (NSString *)processNameFromPID:(pid_t)ppid;
 + (pid_t) find_process:(const char*)name fuzzy:(boolean_t)fuzzy;
 + (NSArray <ALRunningProcess *> *)allRunningProcesses;
++ (int)totalProcessCount;
 @end
 
 

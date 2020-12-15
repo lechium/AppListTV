@@ -8,6 +8,11 @@ extern int proc_pidpath(int, void*, uint32_t);
 extern int proc_listchildpids(pid_t ppid, void * buffer, size_t buffersize);
 static int process_buffer_size = 4096;
 
+@interface ALFindProcess() {
+    NSArray *__runningProcessCache;
+    BOOL _needsRefresh;
+}
+
 @implementation ALFindProcess
 
 + (NSArray <NSNumber *> *)childProcessIds:(pid_t)pid{
@@ -27,7 +32,19 @@ static int process_buffer_size = 4096;
     return _ourPids;
 }
 
++ (int)totalProcessCount {
+    pid_t *pid_buffer;
+    char path_buffer[MAXPATHLEN];
+    int count, i, ret;
+    pid_buffer = (pid_t*)calloc(1, process_buffer_size);
+    assert(pid_buffer != NULL);
+    count = proc_listallpids(pid_buffer, process_buffer_size);
+    free(pid_buffer);
+    return count;
+}
+
 + (NSArray <ALRunningProcess *> *)allRunningProcesses{
+    
     pid_t *pid_buffer;
     char path_buffer[MAXPATHLEN];
     int count, i, ret;
