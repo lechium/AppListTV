@@ -6,6 +6,7 @@
 #import "Defines.h"
 @interface ALAppManager() {
     NSDictionary *__rawDaemonDetails;
+    NSArray *__allApplicationCache;
     BOOL _needsRefresh;
 }
 @end
@@ -179,9 +180,22 @@
     return [self applicationsFromArray:[[self defaultWorkspace] applicationsOfType:1] filterHidden:false];
 }
 
+- (BOOL)cacheHasChanged {
+    if (__allApplicationCache){
+        if ([__allApplicationCache count] != [self lazyApplicationCount]){
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true; //doesnt exist yet
+}
 
 - (NSArray <ALApplication *> *)allInstalledApplications {
-    return [self applicationsFromArray:[[self defaultWorkspace] allInstalledApplications] filterHidden:false];
+    if ([self cacheHasChanged]){
+       __allApplicationCache = [self applicationsFromArray:[[self defaultWorkspace] allInstalledApplications] filterHidden:false];
+    }
+    return __allApplicationCache;
 }
 
 - (NSArray <ALApplication *> *)userInstalledApplications {

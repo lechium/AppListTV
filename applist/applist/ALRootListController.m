@@ -2,10 +2,21 @@
 #import "ALApplicationList.h"
 #import "ALAppManager.h"
 #import "TVSPreferences.h"
+#import "ALFindProcess.h"
 @interface ALRootListController()
 
 @property NSString *domain;
 @property NSString *groupTitle;
+@end
+
+@interface TSKSettingItem (preferenceLoader)
+
+@property (nonatomic, strong) TSKPreviewViewController *previewViewController;
+@property (nonatomic, strong) id controller;
+@property (nonatomic, strong) NSDictionary *specifier;
+@property (nonatomic, strong) NSDictionary *keyboardDetails;
+@property (nonatomic, strong) UIImage *itemIcon;
+
 @end
 
 // All preferences on tvOS are added in programatically in groups.
@@ -23,6 +34,11 @@ const NSString *ALItemDescriptorTextKey = @"text";
 const NSString *ALItemDescriptorDetailTextKey = @"detail-text";
 const NSString *ALItemDescriptorImageKey = @"image";
 
+//tvOS
+const NSString *ALItemSupportsLongPress = @"supports-long-press";
+const NSString *ALAllProcessesMode  = @"all-processes-mode";
+const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
+
 @interface ALRootListController() {
     NSString *_navigationTitle;
     NSArray *descriptors;
@@ -32,25 +48,33 @@ const NSString *ALItemDescriptorImageKey = @"image";
     NSMutableDictionary *settings;
     NSString *settingsKeyPrefix;
     BOOL singleEnabledMode;
+    BOOL supportsLongPress;
+    BOOL useBundleIdentifier;
+    BOOL allProcessesMode;
+    id facade; //settings facade
 }
 @end
 
 @implementation ALRootListController
 
-+ (NSArray *)standardSectionDescriptors
-{
-    return [NSArray arrayWithObjects:
-            [NSDictionary dictionaryWithObjectsAndKeys:
-             @"System Applications", ALSectionDescriptorTitleKey,
-             @"isSystemApplication = TRUE", ALSectionDescriptorPredicateKey,
-             (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
-             nil],
-            [NSDictionary dictionaryWithObjectsAndKeys:
-             @"User Applications", ALSectionDescriptorTitleKey,
-             @"isSystemApplication = FALSE", ALSectionDescriptorPredicateKey,
-             (id)kCFBooleanTrue, ALSectionDescriptorSuppressHiddenAppsKey,
-             nil],
-            nil];
++ (NSArray *)standardSectionDescriptors {
+    return @[@{
+            @"System Applications": ALSectionDescriptorTitleKey,
+            @"isSystemApplication = TRUE": ALSectionDescriptorPredicateKey,
+            (id)kCFBooleanTrue: ALSectionDescriptorSuppressHiddenAppsKey,
+            },
+            @{
+             @"System Applications": ALSectionDescriptorTitleKey,
+             @"isSystemApplication = TRUE": ALSectionDescriptorPredicateKey,
+             (id)kCFBooleanTrue: ALSectionDescriptorSuppressHiddenAppsKey,
+             }];
+}
+
++ (NSArray *)processSectionDescriptors {
+    return @[@{
+    @"All Processes": ALSectionDescriptorTitleKey,
+    (id)kCFBooleanTrue: ALAllProcessesMode,
+    }];
 }
 
 /*
@@ -66,40 +90,71 @@ const NSString *ALItemDescriptorImageKey = @"image";
  }
  */
 
-- (NSArray <TSKSettingItem *>*)applicationsFromAppList{
-    
-    __block NSMutableArray *_apps = [NSMutableArray new];
-    ALApplicationList *list = [ALApplicationList sharedApplicationList];
-    
-    NSDictionary *spec = [self specifier];
-    NSArray *sectionDescriptors = spec[@"ALSectionDescriptors"];
-    NSString *navTitle = spec[@"ALNavigationTitle"];
-    NSPredicate *predicate = nil;
+- (NSArray <TSKSettingItem *>*)itemsFromSpecifier:(NSDictionary *)spec {
+    __block NSMutableArray *_items = [NSMutableArray new];
+    NSString *predicateText = spec[ALSectionDescriptorPredicateKey];
+    NSPredicate *predicate = predicateText ? [NSPredicate predicateWithFormat:predicateText] : nil;
     BOOL onlyVisible = true;
-    if ([sectionDescriptors count] > 0){
-        //for now just handle the first one
-        NSDictionary *firstDesc = [sectionDescriptors firstObject];
-        NSString *predicateText = firstDesc[ALSectionDescriptorPredicateKey];
-        predicate = predicateText ? [NSPredicate predicateWithFormat:predicateText] : nil;
-        if ([[firstDesc allKeys] containsObject:ALSectionDescriptorSuppressHiddenAppsKey]){
-            onlyVisible = [firstDesc[ALSectionDescriptorSuppressHiddenAppsKey] boolValue];
-        }
-        NSString *_gt = firstDesc[@"title"];
-        if (_gt){
-            self.groupTitle = _gt;
-        }
+    supportsLongPress = true;
+    if ([[spec allKeys] containsObject:ALSectionDescriptorSuppressHiddenAppsKey]){
+        onlyVisible = [spec[ALSectionDescriptorSuppressHiddenAppsKey] boolValue];
+    }
+    if ([[spec allKeys] containsObject:ALItemSupportsLongPress]){
+        supportsLongPress = [spec[ALItemSupportsLongPress] boolValue];
+    }
+    ALApplicationList *list = [ALApplicationList sharedApplicationList];
+    if (allProcessesMode){
+        NSArray *allProcesses = [ALFindProcess allRunningProcesses];
+        [allProcesses enumerateObjectsUsingBlock:^(ALRunningProcess  *_Nonnull process, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSString *title = [process name];
+            NSString *key = [process identifierIfApplicable];
+            if (!key){
+                key = [process assetDescription];
+            }
+            TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:key onTitle:nil offTitle:nil];
+            [item setItemIcon:[process icon]];
+            [item setDefaultValue:settingsDefaultValue];
+            if(supportsLongPress){
+                [item setTarget:self];
+                [item setLongPressAction:@selector(longPressAction:)];
+            }
+            if ([facade valueForUndefinedKey:key] == nil){
+                [facade setValue:settingsDefaultValue forUndefinedKey:key];
+            }
+            [_items addObject:item];
+        }];
+        return [_items sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
     }
     NSDictionary *apps = [list applicationsFilteredUsingPredicate:predicate onlyVisible:onlyVisible titleSortedIdentifiers:nil];
+    [apps enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+        NSString *settingsKey = [settingsKeyPrefix stringByAppendingString:obj];
+        if (useBundleIdentifier){
+            settingsKey = [key stringByReplacingOccurrencesOfString:@"." withString:@"-"];
+        }
+        TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
+        NSLog(@"settings default value: %@", settingsDefaultValue);
+        [item setDefaultValue:settingsDefaultValue];
+        if(supportsLongPress){
+            [item setTarget:self];
+            [item setLongPressAction:@selector(longPressAction:)];
+        }
+        if ([facade valueForUndefinedKey:settingsKey] == nil){
+            [facade setValue:settingsDefaultValue forUndefinedKey:settingsKey];
+        }
+        [_items addObject:item];
+    }];
     
+    return [_items sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
+}
+
+
+- (void)loadSpecifier:(NSDictionary *)spec {
+    NSString *navTitle = spec[@"ALNavigationTitle"];
     if (!navTitle){
         navTitle = spec[@"label"];
     }
     self.title = navTitle;
     settingsDefaultValue = spec[@"ALSettingsDefaultValue"];
-    if ([settingsDefaultValue respondsToSelector:@selector(length)]){
-        NSNumber *number = [NSNumber numberWithInteger:[settingsDefaultValue integerValue]];
-        settingsDefaultValue = number;
-    }
     settingsPath = spec[@"ALSettingsPath"];
     if ((kCFCoreFoundationVersionNumber >= 1000) && [settingsPath hasPrefix:@"/var/mobile/Library/Preferences/"] && [settingsPath hasSuffix:@".plist"]) {
         _domain = [[settingsPath lastPathComponent] stringByDeletingPathExtension];
@@ -107,34 +162,44 @@ const NSString *ALItemDescriptorImageKey = @"image";
         _domain = nil;
     }
     NSLog(@"app domain: %@", _domain);
-    //BOOL singleEnabledMode = [spec[@"ALSingleEnabledMode"] boolValue];
     settingsKeyPrefix = spec[@"ALSettingsKeyPrefix"];
-    id facade = [[NSClassFromString(@"TSKPreferencesFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
-    
-    [apps enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
-        NSString *settingsKey = [settingsKeyPrefix stringByAppendingString:obj];
-        TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
-        NSLog(@"settings default value: %@", settingsDefaultValue);
-        [item setDefaultValue:settingsDefaultValue];
-        [item setTarget:self];
-        [item setLongPressAction:@selector(longPressAction:)];
-        if ([facade valueForUndefinedKey:settingsKey] == nil){
-            [facade setValue:settingsDefaultValue forUndefinedKey:settingsKey];
-        }
-        [_apps addObject:item];
-    }];
-    
-    return [_apps sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
+    facade = [[NSClassFromString(@"TSKPreferencesFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
+    if ([[spec allKeys] containsObject:ALItemSupportsLongPress]){
+        supportsLongPress = [spec[ALItemSupportsLongPress] boolValue];
+    }
+    if ([[spec allKeys] containsObject:ALAllProcessesMode]){
+        allProcessesMode = [spec[ALAllProcessesMode] boolValue];
+    }
+    //this was well intentioned by keyPath / key gets screwy because of the periods in the bundleId
+    /*
+    if ([[spec allKeys] containsObject:ALUseBundleIdentifier]){
+        useBundleIdentifier = [spec[ALUseBundleIdentifier] boolValue];
+    }*/
 }
 
 // Lets load our prefs!
 - (id)loadSettingGroups {
     
-    self.groupTitle = @"Applications";
+    supportsLongPress = true;
+    useBundleIdentifier = false;
+    allProcessesMode = false;
+    NSDictionary *spec = [self specifier];
+    [self loadSpecifier:spec];
+    self.sectionDescriptors = spec[@"ALSectionDescriptors"];
+    
+    if (!self.sectionDescriptors){
+        self.sectionDescriptors = [ALRootListController standardSectionDescriptors];
+    }
+    if (allProcessesMode){
+        self.sectionDescriptors = [ALRootListController processSectionDescriptors];
+    }
     NSMutableArray *_backingArray = [NSMutableArray new];
-    NSArray *items = [self applicationsFromAppList];
-    TSKSettingGroup *group = [TSKSettingGroup groupWithTitle:self.groupTitle settingItems:items];
-    [_backingArray addObject:group];
+    [self.sectionDescriptors enumerateObjectsUsingBlock:^(NSDictionary  *_Nonnull groupDescriptor, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSString *groupTitle = groupDescriptor[ALSectionDescriptorTitleKey];
+        NSArray *settingsItems = [self itemsFromSpecifier:groupDescriptor];
+        TSKSettingGroup *group = [TSKSettingGroup groupWithTitle:groupTitle settingItems:settingsItems];
+        [_backingArray addObject:group];
+    }];
     [self setValue:_backingArray forKey:@"_settingGroups"];
     
     return _backingArray;
@@ -180,6 +245,22 @@ const NSString *ALItemDescriptorImageKey = @"image";
     return [TVSPreferences preferencesWithDomain:_domain];
 }
 
++(TSKPreviewViewController*)defaultPreviewViewController {
+    static TSKPreviewViewController *_defaultPreviewViewController=nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _defaultPreviewViewController = [[TSKPreviewViewController alloc] init];
+        NSLog(@"_defaultPreviewViewController => %@", _defaultPreviewViewController);
+        NSString *imagePath = [[NSBundle bundleForClass:self.class] pathForResource:@"icon" ofType:@"png"];
+        UIImage *icon = [UIImage imageWithContentsOfFile:imagePath];
+        if (icon != nil) {
+            TSKVibrantImageView *imageView = [[TSKVibrantImageView alloc] initWithImage:icon];
+            [_defaultPreviewViewController setContentView:imageView];
+        }
+    });
+    return _defaultPreviewViewController;
+}
+
 
 // This is to show our tweak's icon instead of the boring Apple TV logo :)
 -(id)previewForItemAtIndexPath:(NSIndexPath *)indexPath {
@@ -189,6 +270,13 @@ const NSString *ALItemDescriptorImageKey = @"image";
     TSKSettingItem *currentItem = currentGroup.settingItems[indexPath.row];
     NSString *desc = [currentItem localizedDescription];
     //NSString *desc = [item descriptionText];
+    if (allProcessesMode){
+        item = (TSKAppIconPreviewViewController*)[TSKPreviewViewController new];
+        TSKVibrantImageView *imageView = [[TSKVibrantImageView alloc] initWithImage:[currentItem itemIcon]];
+        [item setContentView:imageView];
+        [item setDescriptionText:desc];
+        return item;
+    }
     item = [[TSKAppIconPreviewViewController alloc] initWithApplicationBundleIdentifier:desc];
     NSString *appDetails = [NSString stringWithFormat:@"%@\n\nLong press for more options.", desc];
     [item setDescriptionText:appDetails];

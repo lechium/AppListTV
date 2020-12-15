@@ -45,3 +45,8 @@ extern const NSString *ALSectionDescriptorVisibilityPredicateKey;
 extern const NSString *ALItemDescriptorTextKey;
 extern const NSString *ALItemDescriptorDetailTextKey;
 extern const NSString *ALItemDescriptorImageKey;
+
+//tvOS specific
+extern const NSString *ALItemSupportsLongPress;
+extern const NSString *ALAllProcessesMode;
+extern const NSString *ALUseBundleIdentifier;

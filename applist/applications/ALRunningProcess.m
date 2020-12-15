@@ -96,7 +96,7 @@
         }
         _cachedIcon = [UIImage imageWithContentsOfFile:_imagePath];
         if (_cachedIcon == nil){
-            _cachedIcon = [UIImage imageNamed:@"ExecutableBinaryIcon"];
+            _cachedIcon = [UIImage imageWithContentsOfFile:@"/System/Library/PreferenceBundles/AppList.bundle/ExecutableBinaryIcon.png"];
         }
     }
     return _cachedIcon;
