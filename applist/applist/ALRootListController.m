@@ -59,21 +59,21 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 + (NSArray *)standardSectionDescriptors {
     return @[@{
-            @"System Applications": ALSectionDescriptorTitleKey,
-            @"isSystemApplication = TRUE": ALSectionDescriptorPredicateKey,
-            (id)kCFBooleanTrue: ALSectionDescriptorSuppressHiddenAppsKey,
+            ALSectionDescriptorTitleKey:@"System Applications",
+            ALSectionDescriptorPredicateKey: @"isSystemApplication = TRUE",
+            ALSectionDescriptorSuppressHiddenAppsKey: (id)kCFBooleanTrue,
             },
             @{
-             @"System Applications": ALSectionDescriptorTitleKey,
-             @"isSystemApplication = TRUE": ALSectionDescriptorPredicateKey,
-             (id)kCFBooleanTrue: ALSectionDescriptorSuppressHiddenAppsKey,
+             ALSectionDescriptorTitleKey: @"User Applications",
+             ALSectionDescriptorPredicateKey: @"isSystemApplication = FALSE",
+             ALSectionDescriptorSuppressHiddenAppsKey: (id)kCFBooleanTrue,
              }];
 }
 
 + (NSArray *)processSectionDescriptors {
     return @[@{
-    @"All Processes": ALSectionDescriptorTitleKey,
-    (id)kCFBooleanTrue: ALAllProcessesMode,
+    ALSectionDescriptorTitleKey: @"All Processes",
+    ALAllProcessesMode: (id)kCFBooleanTrue,
     }];
 }
 
@@ -91,6 +91,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
  */
 
 - (NSArray <TSKSettingItem *>*)itemsFromSpecifier:(NSDictionary *)spec {
+    
     __block NSMutableArray *_items = [NSMutableArray new];
     NSString *predicateText = spec[ALSectionDescriptorPredicateKey];
     NSPredicate *predicate = predicateText ? [NSPredicate predicateWithFormat:predicateText] : nil;
@@ -177,7 +178,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     }*/
 }
 
-// Lets load our prefs!
 - (id)loadSettingGroups {
     
     supportsLongPress = true;
@@ -190,7 +190,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     if (!self.sectionDescriptors){
         self.sectionDescriptors = [ALRootListController standardSectionDescriptors];
     }
-    if (allProcessesMode){
+    if (allProcessesMode == true){
         self.sectionDescriptors = [ALRootListController processSectionDescriptors];
     }
     NSMutableArray *_backingArray = [NSMutableArray new];
@@ -240,36 +240,12 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 }
 
 
-// this is to make sure our preferences our loaded
-- (TVSPreferences *)ourPreferences {
-    return [TVSPreferences preferencesWithDomain:_domain];
-}
-
-+(TSKPreviewViewController*)defaultPreviewViewController {
-    static TSKPreviewViewController *_defaultPreviewViewController=nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        _defaultPreviewViewController = [[TSKPreviewViewController alloc] init];
-        NSLog(@"_defaultPreviewViewController => %@", _defaultPreviewViewController);
-        NSString *imagePath = [[NSBundle bundleForClass:self.class] pathForResource:@"icon" ofType:@"png"];
-        UIImage *icon = [UIImage imageWithContentsOfFile:imagePath];
-        if (icon != nil) {
-            TSKVibrantImageView *imageView = [[TSKVibrantImageView alloc] initWithImage:icon];
-            [_defaultPreviewViewController setContentView:imageView];
-        }
-    });
-    return _defaultPreviewViewController;
-}
-
-
-// This is to show our tweak's icon instead of the boring Apple TV logo :)
 -(id)previewForItemAtIndexPath:(NSIndexPath *)indexPath {
     
     TSKAppIconPreviewViewController *item = [super previewForItemAtIndexPath:indexPath];
     TSKSettingGroup *currentGroup = self.settingGroups[indexPath.section];
     TSKSettingItem *currentItem = currentGroup.settingItems[indexPath.row];
     NSString *desc = [currentItem localizedDescription];
-    //NSString *desc = [item descriptionText];
     if (allProcessesMode){
         item = (TSKAppIconPreviewViewController*)[TSKPreviewViewController new];
         TSKVibrantImageView *imageView = [[TSKVibrantImageView alloc] initWithImage:[currentItem itemIcon]];

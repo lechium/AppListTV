@@ -1,10 +1,6 @@
-//#import "Common.h"
 #import <TVSettingKit/TVSettingKit.h>
 
-// Make sure our path is specified so our tweak knows where to store all of the settings :)
-#define PLIST_PATH @"/var/mobile/Library/Preferences/com.nito.applist.plist"
 
-//preferences interface notice that it is of Tyoe TSKViewController and not of PSListController!
 @interface ALRootListController : TSKViewController
 + (NSArray *)standardSectionDescriptors;
 @property (nonatomic, strong) NSDictionary *specifier;
@@ -12,7 +8,6 @@
 @end
 
 
-// this is here so we can launch a task that "resprings" the Apple TV.
 @interface NSTask : NSObject
 @property (copy) NSArray *arguments;
 @property (copy) NSString *currentDirectoryPath;
