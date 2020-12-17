@@ -75,7 +75,7 @@
     self.infoDictionary = packages[self.name];
     if (self.infoDictionary != nil){
         //NSLog(@"%@ is a daemon!", self.name);
-        _type = ProcessTypeDaemon;
+        _type = ProcessTypeDaemon; //this logic might be bunk
     } else {
         NSPredicate *predicate = [NSPredicate predicateWithFormat:@"self.binaryPath == %@",self.path];
         NSArray *apps = [[[ALAppManager sharedManager] allInstalledApplications] filteredArrayUsingPredicate:predicate];

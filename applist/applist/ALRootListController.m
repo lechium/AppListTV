@@ -178,7 +178,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         NSString *settingsKey = [settingsKeyPrefix stringByAppendingString:obj];
         if (singleEnabledMode){
             settingsKey = settingsKeyPrefix;
-            item = [TSKSettingItem actionItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey target:self action:@selector(rowSelected:)];
+            item = [TSKSettingItem actionItemWithTitle:obj description:key representedObject:nil keyPath:nil target:self action:@selector(rowSelected:)];
         } else {
             item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
             [item setDefaultValue:settingsDefaultValue];
@@ -267,7 +267,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     NSLog(@"app domain: %@", _domain);
     
     if ([[spec allKeys] containsObject:ALSingleEnabledMode]){
-        singleEnabledMode = true;
+        singleEnabledMode = [spec[ALSingleEnabledMode] boolValue];
     }
     //settingsKeyPrefix = spec[@"ALSettingsKeyPrefix"];
     settingsKeyPrefix = [spec objectForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-";
@@ -408,7 +408,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     } else {
         app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
     }
-    //ALApplication *app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
     
     UIAlertController *ac = [UIAlertController alertControllerWithTitle:[item localizedTitle] message:nil preferredStyle:UIAlertControllerStyleActionSheet];
     

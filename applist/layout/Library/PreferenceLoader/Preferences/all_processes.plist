@@ -27,7 +27,7 @@
 			<key>ALSettingsPath</key>
 			<string>/var/mobile/Library/Preferences/com.nito.processes.plist</string>
 			<key>ALSingleEnabledMode</key>
-			<false/>
+			<true/>
 			<key>ALAllProcessesMode</key>
 			<true/>
 			<key>bundle</key>
