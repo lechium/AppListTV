@@ -5,51 +5,13 @@
 #import "ALFindProcess.h"
 #import "UIView+RecursiveFind.h"
 
-@interface UIView (science)
-- (NSArray *)siblingsInclusive:(BOOL)include;// inclusive means we include ourselves as well
+@interface TSKTableView (priv)
+- (id)_focusedCell;
 @end
 
-@implementation UIView (science)
-- (NSArray *)siblingsInclusive:(BOOL)include {
-    UIView *superview = [self superview];
-    if (!superview) return nil;
-    if (include){
-        return [superview subviews];
-    }
-    NSMutableArray *sibs = [[superview subviews] mutableCopy];
-    [sibs removeObject:self];
-    return sibs;
-}
-
-@end
-
-@interface TSKTableViewController (science)
+@interface TSKTableViewController (preferenceLoader)
 - (NSArray *)tableViewCells;
 - (UITableViewCell *)cellFromSettingsItem:(TSKSettingItem *)settingsItem;
-@end
-
-@implementation TSKTableViewController (science)
-
--(UITableViewCell *)cellFromSettingsItem:(TSKSettingItem *)settingsItem {
-    NSArray *cells = [self tableViewCells];
-    __block id object = nil;
-    [cells enumerateObjectsUsingBlock:^(TSKTableViewTextCell  *_Nonnull cell, NSUInteger idx, BOOL * _Nonnull stop) {
-        if ([cell item] == settingsItem){
-            object = cell;
-            *stop = true;
-        }
-    }];
-    return object;
-}
-
-- (NSArray *)tableViewCells {
-    UITableView *tv = [self tableView];
-    UITableViewCell *firstCell = (UITableViewCell*)[tv findFirstSubviewWithClass:[UITableViewCell class]];
-    if (firstCell){
-        return [firstCell siblingsInclusive:true];
-    }
-    return nil;
-}
 @end
 
 
@@ -197,7 +159,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         [test setSequence:sequence];
         [test setAction:@selector(doRandomAction:)];
         [item addKonamiCode:test];
-        //[item setValue:@[test] forKey:@"_konamiCodes"];
         [_items addObject:item];
     }];
     
@@ -232,7 +193,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 - (void)rowSelected:(id)sender {
     NSLog(@"rowSelected: %@", sender);
-    UITableViewCell *chosenOne = [self cellFromSettingsItem:sender];
+    UITableViewCell *chosenOne = [(TSKTableView*)[self tableView] _focusedCell];//[self cellFromSettingsItem:sender];
     NSLog(@"found the cell: %@", chosenOne);
     [chosenOne setAccessoryType:3];
     NSString *value = [sender localizedTitle];

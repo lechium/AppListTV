@@ -5,6 +5,6 @@ Architecture: appletvos-arm64
 Description: Allow extensions to read the list of installed apps, for tvOS!
 Maintainer: Kevin Bradley
 Author: Kevin Bradley & Ryan Petrich
-Depends: mobilesubstrate (>= 0.9.5000), preferenceloader (>= 1.4-1)
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader (>= 1.4-14)
 Section: System
 Tag: role::developer

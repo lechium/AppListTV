@@ -2,6 +2,17 @@
 
 @implementation UIView (RecursiveFind)
 
+- (NSArray *)siblingsInclusive:(BOOL)include {
+    UIView *superview = [self superview];
+    if (!superview) return nil;
+    if (include){
+        return [superview subviews];
+    }
+    NSMutableArray *sibs = [[superview subviews] mutableCopy];
+    [sibs removeObject:self];
+    return sibs;
+}
+
 - (BOOL)darkMode {
     
     if (self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark){

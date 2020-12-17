@@ -33,7 +33,7 @@
 			<key>isController</key>
 			<string>1</string>
 			<key>label</key>
-			<string>All Processes</string>
+			<string>List Applications</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -45,6 +45,6 @@
 		</dict>
 	</array>
 	<key>title</key>
-	<string>All Processes</string>
+	<string>Single Selection</string>
 </dict>
 </plist>
