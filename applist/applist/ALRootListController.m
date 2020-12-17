@@ -3,7 +3,10 @@
 #import "ALAppManager.h"
 #import "TVSPreferences.h"
 #import "ALFindProcess.h"
-#import "UIView+RecursiveFind.h"
+
+@interface UIView (preferenceLoader)
+- (NSArray *)siblingsInclusive:(BOOL)include;// inclusive means we include ourselves as well
+@end
 
 @interface TSKTableView (priv)
 - (id)_focusedCell;
@@ -191,13 +194,15 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     return cell;
 }
 
+- (TVSPreferences *)preferences {
+    return [facade valueForKey:@"_prefs"];
+}
+
 - (void)rowSelected:(id)sender {
-    NSLog(@"rowSelected: %@", sender);
     UITableViewCell *chosenOne = [(TSKTableView*)[self tableView] _focusedCell];//[self cellFromSettingsItem:sender];
-    NSLog(@"found the cell: %@", chosenOne);
     [chosenOne setAccessoryType:3];
     NSString *value = [sender localizedTitle];
-    TVSPreferences *tvprefs = [facade valueForKey:@"_prefs"];
+    TVSPreferences *tvprefs = [self preferences];
     [tvprefs setObject:value forKey:settingsKeyPrefix];
     [tvprefs synchronize];
     NSArray *sibs = [chosenOne siblingsInclusive:false];
@@ -257,25 +262,12 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     NSLog(@"triggered: %@", sender);
 }
 
-- (id)loadingCell {
-    TSKTableViewTextCell *cell = [[TSKTableViewTextCell alloc] initWithStyle:[TSKTableViewTextCell preferredCellStyle] reuseIdentifier:@"loading-cell"];
-    [cell setItem:self.loadingItem];
-    [cell _updateTextLabels];
-    UIActivityIndicatorView *view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: 100];
-    [view startAnimating];
-    [view setColor:[UIColor grayColor]];
-    [cell setAccessoryView:view];
-    return cell;
-}
-
 - (id)loadingPleaseWaitGroup {
-    NSLog(@"loadingPleaseWaitGroup");
     return [TSKSettingGroup groupWithTitle:@"" settingItems:@[self.loadingItem]];
 }
 
 - (void)loadAllProcessSpecifierInBackground:(NSDictionary *)groupDescriptor {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        NSLog(@"loadAllProcessSpecifierInBackground");
         NSMutableArray *_items = [NSMutableArray new];
         NSArray *allProcesses = [ALFindProcess allRunningProcesses];
         [allProcesses enumerateObjectsUsingBlock:^(ALRunningProcess  *_Nonnull process, NSUInteger idx, BOOL * _Nonnull stop) {
@@ -303,7 +295,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
             [_items addObject:item];
         }];
         dispatch_async(dispatch_get_main_queue(), ^{
-            NSLog(@"out here?");
             _pleaseWaitView = false;
             NSString *groupTitle = groupDescriptor[ALSectionDescriptorTitleKey];
             NSArray *settingsItems = [_items sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
