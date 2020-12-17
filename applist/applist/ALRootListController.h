@@ -41,6 +41,8 @@ extern const NSString *ALItemDescriptorTextKey;
 extern const NSString *ALItemDescriptorDetailTextKey;
 extern const NSString *ALItemDescriptorImageKey;
 
+extern const NSString *ALSingleEnabledMode;
+
 //tvOS specific
 extern const NSString *ALItemSupportsLongPress;
 extern const NSString *ALAllProcessesMode;

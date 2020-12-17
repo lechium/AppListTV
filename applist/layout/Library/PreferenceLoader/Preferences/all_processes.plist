@@ -22,8 +22,10 @@
 			<string>1</string>
 			<key>ALSettingsDefaultValue</key>
 			<integer>0</integer>
-			<key>ALSettingsKeyPrefix</key>
-			<string></string>
+			<key>ALSettingsKey</key>
+			<string>enabledApp</string>
+			<key>ALSettingsPath</key>
+			<string>/var/mobile/Library/Preferences/com.nito.processes.plist</string>
 			<key>ALSingleEnabledMode</key>
 			<false/>
 			<key>ALAllProcessesMode</key>

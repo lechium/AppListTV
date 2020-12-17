@@ -25,12 +25,12 @@
 
 @interface TSKTableViewController (science)
 - (NSArray *)tableViewCells;
-- (id)cellFromSettingsItem:(TSKSettingItem *)settingsItem;
+- (UITableViewCell *)cellFromSettingsItem:(TSKSettingItem *)settingsItem;
 @end
 
 @implementation TSKTableViewController (science)
 
--(id)cellFromSettingsItem:(TSKSettingItem *)settingsItem {
+-(UITableViewCell *)cellFromSettingsItem:(TSKSettingItem *)settingsItem {
     NSArray *cells = [self tableViewCells];
     __block id object = nil;
     [cells enumerateObjectsUsingBlock:^(TSKTableViewTextCell  *_Nonnull cell, NSUInteger idx, BOOL * _Nonnull stop) {
@@ -92,6 +92,8 @@ const NSString *ALItemDescriptorTextKey = @"text";
 const NSString *ALItemDescriptorDetailTextKey = @"detail-text";
 const NSString *ALItemDescriptorImageKey = @"image";
 
+const NSString *ALSingleEnabledMode = @"ALSingleEnabledMode";
+
 //tvOS
 const NSString *ALItemSupportsLongPress = @"supports-long-press";
 const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
@@ -117,21 +119,21 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 + (NSArray *)standardSectionDescriptors {
     return @[@{
-            ALSectionDescriptorTitleKey:@"System Applications",
-            ALSectionDescriptorPredicateKey: @"isSystemApplication = TRUE",
-            ALSectionDescriptorSuppressHiddenAppsKey: (id)kCFBooleanTrue,
-            },
-            @{
-             ALSectionDescriptorTitleKey: @"User Applications",
-             ALSectionDescriptorPredicateKey: @"isSystemApplication = FALSE",
-             ALSectionDescriptorSuppressHiddenAppsKey: (id)kCFBooleanTrue,
+                 ALSectionDescriptorTitleKey:@"System Applications",
+                 ALSectionDescriptorPredicateKey: @"isSystemApplication = TRUE",
+                 ALSectionDescriptorSuppressHiddenAppsKey: (id)kCFBooleanTrue,
+    },
+             @{
+                 ALSectionDescriptorTitleKey: @"User Applications",
+                 ALSectionDescriptorPredicateKey: @"isSystemApplication = FALSE",
+                 ALSectionDescriptorSuppressHiddenAppsKey: (id)kCFBooleanTrue,
              }];
 }
 
 + (NSArray *)processSectionDescriptors {
     return @[@{
-    ALSectionDescriptorTitleKey: @"All Processes",
-    ALAllProcessesMode: (id)kCFBooleanTrue,
+                 ALSectionDescriptorTitleKey: @"All Processes",
+                 ALAllProcessesMode: (id)kCFBooleanTrue,
     }];
 }
 
@@ -170,44 +172,26 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         supportsLongPress = [spec[ALItemSupportsLongPress] boolValue];
     }
     ALApplicationList *list = [ALApplicationList sharedApplicationList];
-    if (allProcessesMode){
-        NSArray *allProcesses = [ALFindProcess allRunningProcesses];
-        [allProcesses enumerateObjectsUsingBlock:^(ALRunningProcess  *_Nonnull process, NSUInteger idx, BOOL * _Nonnull stop) {
-            NSString *title = [process name];
-            NSString *key = [process identifierIfApplicable];
-            if (!key){
-                key = [process assetDescription];
-            }
-            TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:key onTitle:nil offTitle:nil];
-            [item setItemIcon:[process icon]];
-            [item setDefaultValue:settingsDefaultValue];
-            if(supportsLongPress){
-                [item setTarget:self];
-                [item setLongPressAction:@selector(longPressAction:)];
-            }
-            if ([facade valueForUndefinedKey:key] == nil){
-                [facade setValue:settingsDefaultValue forUndefinedKey:key];
-            }
-            [_items addObject:item];
-        }];
-        return [_items sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
-    }
     NSDictionary *apps = [list applicationsFilteredUsingPredicate:predicate onlyVisible:onlyVisible titleSortedIdentifiers:nil];
     [apps enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+        TSKSettingItem *item = nil;
         NSString *settingsKey = [settingsKeyPrefix stringByAppendingString:obj];
-        if (useBundleIdentifier){
-            settingsKey = [key stringByReplacingOccurrencesOfString:@"." withString:@"-"];
+        if (singleEnabledMode){
+            settingsKey = settingsKeyPrefix;
+            item = [TSKSettingItem actionItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey target:self action:@selector(rowSelected:)];
+        } else {
+            item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
+            [item setDefaultValue:settingsDefaultValue];
+            if ([facade valueForUndefinedKey:settingsKey] == nil){
+                [facade setValue:settingsDefaultValue forUndefinedKey:settingsKey];
+            }
+            
         }
-        TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
-        //NSLog(@"settings default value: %@", settingsDefaultValue);
-        [item setDefaultValue:settingsDefaultValue];
         if(supportsLongPress){
             [item setTarget:self];
             [item setLongPressAction:@selector(longPressAction:)];
         }
-        if ([facade valueForUndefinedKey:settingsKey] == nil){
-            [facade setValue:settingsDefaultValue forUndefinedKey:settingsKey];
-        }
+        
         TSKKonamiCode *test = [TSKKonamiCode new];
         NSArray *sequence = @[@6,@6,@6];
         [test setSequence:sequence];
@@ -220,20 +204,45 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     return [_items sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
 }
 
-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    /*
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSLog(@"did select row");
+    [super tableView:tableView didSelectRowAtIndexPath:indexPath];
+}
+
+- (TSKTableViewTextCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    TSKTableViewTextCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
+    if (singleEnabledMode){
+        NSString *enabledApp = [[facade valueForKey:@"_prefs"] objectForKey:settingsKeyPrefix];
+        NSString *cellName = [[cell item] localizedTitle];
+        if ([enabledApp isEqualToString:cellName]){
+            [cell setAccessoryType:3];
+        } else {
+            [cell setAccessoryType:0];
+        }
+    }
     if (_pleaseWaitView){
-        return [self loadingCell];
-    }*/
-    UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
-    if (_pleaseWaitView){
-          UIActivityIndicatorView *view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: 100];
-          [view startAnimating];
-          [view setColor:[UIColor grayColor]];
-          [cell setAccessoryView:view];
+        UIActivityIndicatorView *view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: 100];
+        [view startAnimating];
+        [view setColor:[UIColor grayColor]];
+        [cell setAccessoryView:view];
     }
     //NSLog(@"cell: %@", cell);
     return cell;
+}
+
+- (void)rowSelected:(id)sender {
+    NSLog(@"rowSelected: %@", sender);
+    UITableViewCell *chosenOne = [self cellFromSettingsItem:sender];
+    NSLog(@"found the cell: %@", chosenOne);
+    [chosenOne setAccessoryType:3];
+    NSString *value = [sender localizedTitle];
+    TVSPreferences *tvprefs = [facade valueForKey:@"_prefs"];
+    [tvprefs setObject:value forKey:settingsKeyPrefix];
+    [tvprefs synchronize];
+    NSArray *sibs = [chosenOne siblingsInclusive:false];
+    [sibs enumerateObjectsUsingBlock:^(TSKTableViewTextCell  *_Nonnull cell, NSUInteger idx, BOOL * _Nonnull stop) {
+        [cell setAccessoryType:0];
+    }];
 }
 
 - (void)loadSpecifier:(NSDictionary *)spec {
@@ -242,6 +251,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     supportsLongPress = true;
     useBundleIdentifier = false;
     allProcessesMode = false;
+    singleEnabledMode = false;
     NSString *navTitle = spec[@"ALNavigationTitle"];
     if (!navTitle){
         navTitle = spec[@"label"];
@@ -255,7 +265,13 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         _domain = nil;
     }
     NSLog(@"app domain: %@", _domain);
-    settingsKeyPrefix = spec[@"ALSettingsKeyPrefix"];
+    
+    if ([[spec allKeys] containsObject:ALSingleEnabledMode]){
+        singleEnabledMode = true;
+    }
+    //settingsKeyPrefix = spec[@"ALSettingsKeyPrefix"];
+    settingsKeyPrefix = [spec objectForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-";
+    NSLog(@"settingsKeyPrefix: %@", settingsKeyPrefix);
     if (_domain){
         facade = [[NSClassFromString(@"TSKPreferencesFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
     }
@@ -267,11 +283,12 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         allProcessesMode = [spec[ALAllProcessesMode] boolValue];
         _pleaseWaitView = true;
     }
+    
     //this was well intentioned by keyPath / key gets screwy because of the periods in the bundleId
     /*
-    if ([[spec allKeys] containsObject:ALUseBundleIdentifier]){
-        useBundleIdentifier = [spec[ALUseBundleIdentifier] boolValue];
-    }*/
+     if ([[spec allKeys] containsObject:ALUseBundleIdentifier]){
+     useBundleIdentifier = [spec[ALUseBundleIdentifier] boolValue];
+     }*/
     _specifierLoaded = true;
 }
 
@@ -307,14 +324,14 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
                 key = [process assetDescription];
             }
             TSKSettingItem *item = nil;
-            if (facade){
+            if (!singleEnabledMode){
                 item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:key onTitle:nil offTitle:nil];
                 [item setDefaultValue:settingsDefaultValue];
                 if ([facade valueForUndefinedKey:key] == nil){
                     [facade setValue:settingsDefaultValue forUndefinedKey:key];
                 }
             } else {
-                item = [TSKSettingItem titleItemWithTitle:title description:key representedObject:nil keyPath:nil];
+                item = [TSKSettingItem actionItemWithTitle:title description:key representedObject:nil keyPath:nil target:self action:@selector(rowSelected:)];
             }
             [item setItemIcon:[process icon]];
             if(supportsLongPress){
