@@ -87,7 +87,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 - (id)init {
     self = [super init];
-    NSLog(@"fun innnit");
     if (self){
         self.loadingItem = [TSKSettingItem titleItemWithTitle:@"Loading please wait..." description:@"Loading all processes this may take a moment please wait." representedObject:nil keyPath:nil];
     }
@@ -207,7 +206,9 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     }
     NSLog(@"app domain: %@", _domain);
     settingsKeyPrefix = spec[@"ALSettingsKeyPrefix"];
-    facade = [[NSClassFromString(@"TSKPreferencesFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
+    if (_domain){
+        facade = [[NSClassFromString(@"TSKPreferencesFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
+    }
     if ([[spec allKeys] containsObject:ALItemSupportsLongPress]){
         supportsLongPress = [spec[ALItemSupportsLongPress] boolValue];
     }
@@ -255,16 +256,22 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
             if (!key){
                 key = [process assetDescription];
             }
-            TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:key onTitle:nil offTitle:nil];
+            TSKSettingItem *item = nil;
+            if (facade){
+                item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:key onTitle:nil offTitle:nil];
+                [item setDefaultValue:settingsDefaultValue];
+                if ([facade valueForUndefinedKey:key] == nil){
+                    [facade setValue:settingsDefaultValue forUndefinedKey:key];
+                }
+            } else {
+                item = [TSKSettingItem titleItemWithTitle:title description:key representedObject:nil keyPath:nil];
+            }
             [item setItemIcon:[process icon]];
-            [item setDefaultValue:settingsDefaultValue];
             if(supportsLongPress){
                 [item setTarget:self];
                 [item setLongPressAction:@selector(longPressAction:)];
             }
-            if ([facade valueForUndefinedKey:key] == nil){
-                [facade setValue:settingsDefaultValue forUndefinedKey:key];
-            }
+            
             [_items addObject:item];
         }];
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -283,8 +290,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 - (id)loadSettingGroups {
     
-    NSLog(@"type: %lu", UIPressTypeSelect);
-
     NSDictionary *spec = [self specifier];
     [self loadSpecifier:spec];
     self.sectionDescriptors = spec[@"ALSectionDescriptors"];
@@ -296,11 +301,9 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     if (allProcessesMode == true){
         self.sectionDescriptors = [ALRootListController processSectionDescriptors];
         if (_pleaseWaitView){
-            NSLog(@"wait plz");
             [self loadAllProcessSpecifierInBackground:self.sectionDescriptors[0]];
             return @[[self loadingPleaseWaitGroup]];
         } else {
-            NSLog(@"backingArray: %@", _backingArray);
             [self setValue:_backingArray forKey:@"_settingGroups"];
             return _backingArray;
         }
@@ -323,7 +326,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 }
 
 - (void)longPressAction:(TSKSettingItem *)item {
-    NSLog(@"long press occured: %@", item);
     
     NSString *ident = [item localizedDescription];
     ALApplication *app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
@@ -358,13 +360,15 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 -(id)previewForItemAtIndexPath:(NSIndexPath *)indexPath {
     
-    if (_pleaseWaitView){
-       return [[[self navigationController] previousViewController] defaultPreviewViewController];
-    }
     TSKAppIconPreviewViewController *item = [super previewForItemAtIndexPath:indexPath];
     TSKSettingGroup *currentGroup = self.settingGroups[indexPath.section];
     TSKSettingItem *currentItem = currentGroup.settingItems[indexPath.row];
     NSString *desc = [currentItem localizedDescription];
+    if (_pleaseWaitView){
+        item =  (TSKAppIconPreviewViewController*)[[[self navigationController] previousViewController] defaultPreviewViewController];
+        [item setDescriptionText:desc];
+        return item;
+    }
     if (allProcessesMode){
         item = (TSKAppIconPreviewViewController*)[TSKPreviewViewController new];
         TSKVibrantImageView *imageView = [[TSKVibrantImageView alloc] initWithImage:[currentItem itemIcon]];
