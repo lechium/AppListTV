@@ -325,7 +325,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
             }
             TSKSettingItem *item = nil;
             if (!singleEnabledMode){
-                item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:key onTitle:nil offTitle:nil];
+                item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:title onTitle:nil offTitle:nil];
                 [item setDefaultValue:settingsDefaultValue];
                 if ([facade valueForUndefinedKey:key] == nil){
                     [facade setValue:settingsDefaultValue forUndefinedKey:key];
