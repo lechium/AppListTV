@@ -54,6 +54,50 @@
     }];
     return ntvApps;
 }
+- (void)preloadDaemonDetails {
+     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+         [self rawDaemonDetails];
+     });
+}
+
++ (NSArray *)rawDaemonList {
+    NSArray *returnValue = [self returnForProcess:@"/usr/bin/find / -name \"com.*.plist\""];
+    NSLog(@"find return: %@", returnValue);
+    return returnValue;
+}
+
+
+- (NSDictionary *)rawDaemonDetails {
+    if ((__rawDaemonDetails != nil) && (_needsRefresh == false)){
+           return __rawDaemonDetails;
+    }
+    NSArray *fullDaemonList = [ALAppManager rawDaemonList];
+    NSMutableDictionary *finalDict = [NSMutableDictionary new];
+    [fullDaemonList enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        if ([[obj pathExtension] isEqualToString:@"plist"]){
+            NSDictionary *dirtyDeeds = [NSDictionary dictionaryWithContentsOfFile:obj];
+            if (dirtyDeeds){
+                NSString *dictKey = nil;
+                if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
+                    //NSLog(@"program: %@", obj);
+                    dictKey = [dirtyDeeds[@"Program"] lastPathComponent];
+                } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
+                    //NSLog(@"programArgs: %@", obj);
+                    dictKey = [[dirtyDeeds[@"ProgramArguments"] firstObject] lastPathComponent];
+                }
+                //NSLog(@"dictKey: %@", dictKey);
+                if (dictKey != nil && dirtyDeeds != nil){
+                    finalDict[dictKey] = dirtyDeeds;
+                }
+                
+            }
+            
+        }
+    }];
+    __rawDaemonDetails = finalDict;
+    return __rawDaemonDetails;
+}
 
 + (int)killProcess:(NSString *)processName {
     
@@ -103,6 +147,24 @@
     if (block){
         block(temp, termStatus);
     }
+}
+
++ (NSArray *)returnForProcess:(NSString *)call {
+    if (call==nil)
+        return 0;
+    char line[200];
+     NSLog(@"running process: %@", call);
+    FILE* fp = popen([call UTF8String], "r");
+    NSMutableArray *lines = [[NSMutableArray alloc]init];
+    if (fp) {
+        while (fgets(line, sizeof line, fp)) {
+            NSString *s = [NSString stringWithCString:line encoding:NSUTF8StringEncoding];
+            s = [s stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            [lines addObject:s];
+        }
+    }
+    pclose(fp);
+    return lines;
 }
 
 + (int)killRunningProcess:(ALRunningProcess *)app {
@@ -202,7 +264,7 @@
     return [self applicationsFromArray:[[self defaultWorkspace] applicationsOfType:0] filterHidden:false];
 }
 
-- (NSDictionary *)rawDaemonDetails {
+- (NSDictionary *)oldrawDaemonDetails {
     if ((__rawDaemonDetails != nil) && (_needsRefresh == false)){
         return __rawDaemonDetails;
     }

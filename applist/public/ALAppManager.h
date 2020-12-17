@@ -21,6 +21,7 @@
 + (NSString *)groupForID:(NSInteger)gid;
 - (ALApplication *)applicationWithDisplayIdentifier:(NSString *)identifier;
 - (NSInteger)lazyApplicationCount;
+- (void)preloadDaemonDetails;
 @end
 
 

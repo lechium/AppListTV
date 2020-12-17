@@ -3,10 +3,19 @@
 #import "ALAppManager.h"
 #import "TVSPreferences.h"
 #import "ALFindProcess.h"
-@interface ALRootListController()
+@interface ALRootListController(){
+    BOOL _pleaseWaitView;
+    BOOL _specifierLoaded;
+    NSMutableArray *_backingArray;
+}
 
 @property NSString *domain;
 @property NSString *groupTitle;
+@property (nonatomic, strong) TSKSettingItem *loadingItem;
+@end
+
+@interface UINavigationController (preferenceLoader)
+- (TSKTableViewController *)previousViewController;
 @end
 
 @interface TSKSettingItem (preferenceLoader)
@@ -16,7 +25,6 @@
 @property (nonatomic, strong) NSDictionary *specifier;
 @property (nonatomic, strong) NSDictionary *keyboardDetails;
 @property (nonatomic, strong) UIImage *itemIcon;
-
 @end
 
 // All preferences on tvOS are added in programatically in groups.
@@ -77,6 +85,15 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     }];
 }
 
+- (id)init {
+    self = [super init];
+    NSLog(@"fun innnit");
+    if (self){
+        self.loadingItem = [TSKSettingItem titleItemWithTitle:@"Loading please wait..." description:@"Loading all processes this may take a moment please wait." representedObject:nil keyPath:nil];
+    }
+    return self;
+}
+
 /*
  
  settingsKeyPrefix = [specifier propertyForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-";
@@ -133,7 +150,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
             settingsKey = [key stringByReplacingOccurrencesOfString:@"." withString:@"-"];
         }
         TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
-        NSLog(@"settings default value: %@", settingsDefaultValue);
+        //NSLog(@"settings default value: %@", settingsDefaultValue);
         [item setDefaultValue:settingsDefaultValue];
         if(supportsLongPress){
             [item setTarget:self];
@@ -142,14 +159,40 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         if ([facade valueForUndefinedKey:settingsKey] == nil){
             [facade setValue:settingsDefaultValue forUndefinedKey:settingsKey];
         }
+        TSKKonamiCode *test = [TSKKonamiCode new];
+        NSArray *sequence = @[@6,@6,@6];
+        [test setSequence:sequence];
+        [test setAction:@selector(doRandomAction:)];
+        [item addKonamiCode:test];
+        //[item setValue:@[test] forKey:@"_konamiCodes"];
         [_items addObject:item];
     }];
     
     return [_items sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
 }
 
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    /*
+    if (_pleaseWaitView){
+        return [self loadingCell];
+    }*/
+    UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
+    if (_pleaseWaitView){
+          UIActivityIndicatorView *view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: 100];
+          [view startAnimating];
+          [view setColor:[UIColor grayColor]];
+          [cell setAccessoryView:view];
+    }
+    //NSLog(@"cell: %@", cell);
+    return cell;
+}
 
 - (void)loadSpecifier:(NSDictionary *)spec {
+    if (_specifierLoaded) return;
+    
+    supportsLongPress = true;
+    useBundleIdentifier = false;
+    allProcessesMode = false;
     NSString *navTitle = spec[@"ALNavigationTitle"];
     if (!navTitle){
         navTitle = spec[@"label"];
@@ -171,19 +214,77 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     if ([[spec allKeys] containsObject:ALAllProcessesMode]){
         NSLog(@"all processes mode!");
         allProcessesMode = [spec[ALAllProcessesMode] boolValue];
+        _pleaseWaitView = true;
     }
     //this was well intentioned by keyPath / key gets screwy because of the periods in the bundleId
     /*
     if ([[spec allKeys] containsObject:ALUseBundleIdentifier]){
         useBundleIdentifier = [spec[ALUseBundleIdentifier] boolValue];
     }*/
+    _specifierLoaded = true;
+}
+
+- (void)doRandomAction:(id)sender {
+    NSLog(@"triggered: %@", sender);
+}
+
+- (id)loadingCell {
+    TSKTableViewTextCell *cell = [[TSKTableViewTextCell alloc] initWithStyle:[TSKTableViewTextCell preferredCellStyle] reuseIdentifier:@"loading-cell"];
+    [cell setItem:self.loadingItem];
+    [cell _updateTextLabels];
+    UIActivityIndicatorView *view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: 100];
+    [view startAnimating];
+    [view setColor:[UIColor grayColor]];
+    [cell setAccessoryView:view];
+    return cell;
+}
+
+- (id)loadingPleaseWaitGroup {
+    NSLog(@"loadingPleaseWaitGroup");
+    return [TSKSettingGroup groupWithTitle:@"" settingItems:@[self.loadingItem]];
+}
+
+- (void)loadAllProcessSpecifierInBackground:(NSDictionary *)groupDescriptor {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        NSLog(@"loadAllProcessSpecifierInBackground");
+        NSMutableArray *_items = [NSMutableArray new];
+        NSArray *allProcesses = [ALFindProcess allRunningProcesses];
+        [allProcesses enumerateObjectsUsingBlock:^(ALRunningProcess  *_Nonnull process, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSString *title = [process name];
+            NSString *key = [process identifierIfApplicable];
+            if (!key){
+                key = [process assetDescription];
+            }
+            TSKSettingItem *item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:key onTitle:nil offTitle:nil];
+            [item setItemIcon:[process icon]];
+            [item setDefaultValue:settingsDefaultValue];
+            if(supportsLongPress){
+                [item setTarget:self];
+                [item setLongPressAction:@selector(longPressAction:)];
+            }
+            if ([facade valueForUndefinedKey:key] == nil){
+                [facade setValue:settingsDefaultValue forUndefinedKey:key];
+            }
+            [_items addObject:item];
+        }];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSLog(@"out here?");
+            _pleaseWaitView = false;
+            NSString *groupTitle = groupDescriptor[ALSectionDescriptorTitleKey];
+            NSArray *settingsItems = [_items sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
+            TSKSettingGroup *group = [TSKSettingGroup groupWithTitle:groupTitle settingItems:settingsItems];
+            _backingArray = [NSMutableArray new];
+            [_backingArray addObject:group];
+            [self reloadSettings];
+        });
+    });
+    
 }
 
 - (id)loadSettingGroups {
     
-    supportsLongPress = true;
-    useBundleIdentifier = false;
-    allProcessesMode = false;
+    NSLog(@"type: %lu", UIPressTypeSelect);
+
     NSDictionary *spec = [self specifier];
     [self loadSpecifier:spec];
     self.sectionDescriptors = spec[@"ALSectionDescriptors"];
@@ -191,10 +292,24 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     if (!self.sectionDescriptors){
         self.sectionDescriptors = [ALRootListController standardSectionDescriptors];
     }
+    
     if (allProcessesMode == true){
         self.sectionDescriptors = [ALRootListController processSectionDescriptors];
+        if (_pleaseWaitView){
+            NSLog(@"wait plz");
+            [self loadAllProcessSpecifierInBackground:self.sectionDescriptors[0]];
+            return @[[self loadingPleaseWaitGroup]];
+        } else {
+            NSLog(@"backingArray: %@", _backingArray);
+            [self setValue:_backingArray forKey:@"_settingGroups"];
+            return _backingArray;
+        }
     }
-    NSMutableArray *_backingArray = [NSMutableArray new];
+    if (!_backingArray){
+        _backingArray = [NSMutableArray new];
+    } else {
+        [_backingArray removeAllObjects];
+    }
     [self.sectionDescriptors enumerateObjectsUsingBlock:^(NSDictionary  *_Nonnull groupDescriptor, NSUInteger idx, BOOL * _Nonnull stop) {
         NSString *groupTitle = groupDescriptor[ALSectionDescriptorTitleKey];
         NSArray *settingsItems = [self itemsFromSpecifier:groupDescriptor];
@@ -243,6 +358,9 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 -(id)previewForItemAtIndexPath:(NSIndexPath *)indexPath {
     
+    if (_pleaseWaitView){
+       return [[[self navigationController] previousViewController] defaultPreviewViewController];
+    }
     TSKAppIconPreviewViewController *item = [super previewForItemAtIndexPath:indexPath];
     TSKSettingGroup *currentGroup = self.settingGroups[indexPath.section];
     TSKSettingItem *currentItem = currentGroup.settingItems[indexPath.row];
