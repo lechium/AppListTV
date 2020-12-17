@@ -1,6 +1,6 @@
 Package: applist
 Name: AppList
-Version: 1.1
+Version: 1.2
 Architecture: appletvos-arm64
 Description: Allow extensions to read the list of installed apps, for tvOS!
 Maintainer: Kevin Bradley
