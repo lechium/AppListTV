@@ -36,6 +36,11 @@
   
 }
 
+- (NSString *)description {
+    NSString *sup = [super description];
+    return [NSString stringWithFormat:@"%@, name: %@ type: %@ pid: %d", sup, self.name, self.stringForType, self.pid];
+}
+
 - (NSString *)identifierIfApplicable {
     
     if (_cachedIdentifier != nil) return _cachedIdentifier;

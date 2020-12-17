@@ -331,7 +331,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
                     [facade setValue:settingsDefaultValue forUndefinedKey:key];
                 }
             } else {
-                item = [TSKSettingItem actionItemWithTitle:title description:key representedObject:nil keyPath:nil target:self action:@selector(rowSelected:)];
+                item = [TSKSettingItem actionItemWithTitle:title description:key representedObject:process keyPath:nil target:self action:@selector(rowSelected:)];
             }
             [item setItemIcon:[process icon]];
             if(supportsLongPress){
@@ -394,8 +394,21 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 - (void)longPressAction:(TSKSettingItem *)item {
     
+    ALApplication *app = nil;
     NSString *ident = [item localizedDescription];
-    ALApplication *app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
+    if ([[item representedObject] isKindOfClass:[ALRunningProcess class]]){
+        ALRunningProcess *process = [item representedObject];
+        NSLog(@"process: %@", process);
+        if ([process associatedApplication]){
+            app = [process associatedApplication];
+            ident = [app bundleID];
+        } else {
+            return;
+        }
+    } else {
+        app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
+    }
+    //ALApplication *app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
     
     UIAlertController *ac = [UIAlertController alertControllerWithTitle:[item localizedTitle] message:nil preferredStyle:UIAlertControllerStyleActionSheet];
     
