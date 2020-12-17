@@ -3,6 +3,56 @@
 #import "ALAppManager.h"
 #import "TVSPreferences.h"
 #import "ALFindProcess.h"
+#import "UIView+RecursiveFind.h"
+
+@interface UIView (science)
+- (NSArray *)siblingsInclusive:(BOOL)include;// inclusive means we include ourselves as well
+@end
+
+@implementation UIView (science)
+- (NSArray *)siblingsInclusive:(BOOL)include {
+    UIView *superview = [self superview];
+    if (!superview) return nil;
+    if (include){
+        return [superview subviews];
+    }
+    NSMutableArray *sibs = [[superview subviews] mutableCopy];
+    [sibs removeObject:self];
+    return sibs;
+}
+
+@end
+
+@interface TSKTableViewController (science)
+- (NSArray *)tableViewCells;
+- (id)cellFromSettingsItem:(TSKSettingItem *)settingsItem;
+@end
+
+@implementation TSKTableViewController (science)
+
+-(id)cellFromSettingsItem:(TSKSettingItem *)settingsItem {
+    NSArray *cells = [self tableViewCells];
+    __block id object = nil;
+    [cells enumerateObjectsUsingBlock:^(TSKTableViewTextCell  *_Nonnull cell, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([cell item] == settingsItem){
+            object = cell;
+            *stop = true;
+        }
+    }];
+    return object;
+}
+
+- (NSArray *)tableViewCells {
+    UITableView *tv = [self tableView];
+    UITableViewCell *firstCell = (UITableViewCell*)[tv findFirstSubviewWithClass:[UITableViewCell class]];
+    if (firstCell){
+        return [firstCell siblingsInclusive:true];
+    }
+    return nil;
+}
+@end
+
+
 @interface ALRootListController(){
     BOOL _pleaseWaitView;
     BOOL _specifierLoaded;
