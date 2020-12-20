@@ -46,4 +46,3 @@ extern const NSString *ALSingleEnabledMode;
 //tvOS specific
 extern const NSString *ALItemSupportsLongPress;
 extern const NSString *ALAllProcessesMode;
-extern const NSString *ALUseBundleIdentifier;

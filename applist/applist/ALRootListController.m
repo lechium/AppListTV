@@ -105,7 +105,6 @@ const NSString *ALSingleEnabledMode = @"ALSingleEnabledMode";
 //tvOS
 const NSString *ALItemSupportsLongPress = @"supports-long-press";
 const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
-const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 @interface ALRootListController() {
     NSString *_navigationTitle;
@@ -117,7 +116,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     NSString *settingsKeyPrefix;
     BOOL singleEnabledMode;
     BOOL supportsLongPress;
-    BOOL useBundleIdentifier;
     BOOL allProcessesMode;
     id facade; //settings facade
 }
@@ -216,7 +214,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     TSKTableViewTextCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
     if (singleEnabledMode){
         NSString *enabledApp = [[facade valueForKey:@"_prefs"] objectForKey:settingsKeyPrefix];
-        NSString *cellName = [[cell item] localizedTitle];
+        NSString *cellName = [[cell item] keyPath];
         if ([enabledApp isEqualToString:cellName]){
             [cell setAccessoryType:3];
         } else {
@@ -257,7 +255,6 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     if (_specifierLoaded) return;
     
     supportsLongPress = true;
-    useBundleIdentifier = false;
     allProcessesMode = false;
     singleEnabledMode = false;
     NSString *navTitle = spec[@"ALNavigationTitle"];
@@ -295,12 +292,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         allProcessesMode = [spec[ALAllProcessesMode] boolValue];
         _pleaseWaitView = true;
     }
-    
-    //this was well intentioned by keyPath / key gets screwy because of the periods in the bundleId
-    /*
-     if ([[spec allKeys] containsObject:ALUseBundleIdentifier]){
-     useBundleIdentifier = [spec[ALUseBundleIdentifier] boolValue];
-     }*/
+ 
     _specifierLoaded = true;
 }
 
