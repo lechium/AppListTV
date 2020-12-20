@@ -42,6 +42,53 @@
 @property (nonatomic, strong) UIImage *itemIcon;
 @end
 
+@interface ALSettingsFacade: TSKPreferencesFacade
+@end
+
+@implementation ALSettingsFacade
+
+- (id)valueForKey:(id)key {
+    id og = [super valueForKey:key];
+    //NSLog(@"[AppList] returning value: %@ of type: %@ forKey: %@", og, [og class], key);
+    return og;
+}
+ 
+- (id)valueForKeyPath:(id)keyPath {
+    
+    if ([keyPath respondsToSelector:@selector(length)]){
+        if ([keyPath containsString:@"com"] || [keyPath containsString:@"net"] || [keyPath containsString:@"org"]){
+            id val = [super valueForKey:keyPath];
+            //NSLog(@"[AppList] returning value: %@ of type: %@ forKeyPath: %@", val, [val class], keyPath);
+            return val;
+        }
+    }
+    
+    id og = [super valueForKeyPath:keyPath];
+    //NSLog(@"[AppList] returning value: %@ of type: %@ forKeyPath: %@", og, [og class], keyPath);
+    return og;
+}
+
+- (void)setValue:(id)value forKeyPath:(id)keyPath {
+    
+    if ([keyPath respondsToSelector:@selector(length)]){
+        if ([keyPath containsString:@"com"] || [keyPath containsString:@"net"] || [keyPath containsString:@"org"]){
+            [super setValue:value forKey:keyPath];
+            //NSLog(@"[AppList] setting value: %@ of type: %@ forKey: %@", value, [value class], keyPath);
+            return;
+        }
+    }
+    
+    //NSLog(@"[AppList] setting value: %@ of type: %@ forKeyPath: %@", value, [value class], keyPath);
+    [super setValue:value forKeyPath:keyPath];
+}
+
+- (void)setValue:(id)value forKey:(id)key {
+    //NSLog(@"[AppList] setting value: %@ of type: %@ forKey: %@", value, [value class], key);
+    [super setValue:value forKey:key];
+}
+
+@end
+
 // All preferences on tvOS are added in programatically in groups.
 
 const NSString *ALSectionDescriptorTitleKey = @"title";
@@ -140,10 +187,10 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     NSDictionary *apps = [list applicationsFilteredUsingPredicate:predicate onlyVisible:onlyVisible titleSortedIdentifiers:nil];
     [apps enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         TSKSettingItem *item = nil;
-        NSString *settingsKey = [settingsKeyPrefix stringByAppendingString:obj];
+        NSString *settingsKey = [settingsKeyPrefix stringByAppendingString:key];
         if (singleEnabledMode){
             settingsKey = settingsKeyPrefix;
-            item = [TSKSettingItem actionItemWithTitle:obj description:key representedObject:nil keyPath:nil target:self action:@selector(rowSelected:)];
+            item = [TSKSettingItem actionItemWithTitle:obj description:key representedObject:nil keyPath:key target:self action:@selector(rowSelected:)];
         } else {
             item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
             [item setDefaultValue:settingsDefaultValue];
@@ -202,6 +249,9 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     UITableViewCell *chosenOne = [(TSKTableView*)[self tableView] _focusedCell];//[self cellFromSettingsItem:sender];
     [chosenOne setAccessoryType:3];
     NSString *value = [sender localizedTitle];
+    if ([sender keyPath]){
+        value = [sender keyPath];
+    }
     TVSPreferences *tvprefs = [self preferences];
     [tvprefs setObject:value forKey:settingsKeyPrefix];
     [tvprefs synchronize];
@@ -224,6 +274,10 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     }
     self.title = navTitle;
     settingsDefaultValue = spec[@"ALSettingsDefaultValue"];
+    if ([settingsDefaultValue respondsToSelector:@selector(length)]){
+        //it should be an integer for on or off!
+        settingsDefaultValue = [NSNumber numberWithInteger:[settingsDefaultValue integerValue]];
+    }
     settingsPath = spec[@"ALSettingsPath"];
     if ((kCFCoreFoundationVersionNumber >= 1000) && [settingsPath hasPrefix:@"/var/mobile/Library/Preferences/"] && [settingsPath hasSuffix:@".plist"]) {
         _domain = [[settingsPath lastPathComponent] stringByDeletingPathExtension];
@@ -239,7 +293,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     settingsKeyPrefix = [spec objectForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-";
     NSLog(@"settingsKeyPrefix: %@", settingsKeyPrefix);
     if (_domain){
-        facade = [[NSClassFromString(@"TSKPreferencesFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
+        facade = [[NSClassFromString(@"ALSettingsFacade") alloc] initWithDomain:_domain notifyChanges:TRUE];
     }
     if ([[spec allKeys] containsObject:ALItemSupportsLongPress]){
         supportsLongPress = [spec[ALItemSupportsLongPress] boolValue];
@@ -272,19 +326,21 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
         NSArray *allProcesses = [ALFindProcess allRunningProcesses];
         [allProcesses enumerateObjectsUsingBlock:^(ALRunningProcess  *_Nonnull process, NSUInteger idx, BOOL * _Nonnull stop) {
             NSString *title = [process name];
-            NSString *key = [process identifierIfApplicable];
-            if (!key){
-                key = [process assetDescription];
+            NSString *desc = [process identifierIfApplicable];
+            NSString *key = desc;
+            if (!desc){
+                desc = [process assetDescription];
+                key = [desc lastPathComponent];
             }
             TSKSettingItem *item = nil;
             if (!singleEnabledMode){
-                item = [TSKSettingItem toggleItemWithTitle:title description:key representedObject:facade keyPath:title onTitle:nil offTitle:nil];
+                item = [TSKSettingItem toggleItemWithTitle:title description:desc representedObject:facade keyPath:title onTitle:nil offTitle:nil];
                 [item setDefaultValue:settingsDefaultValue];
                 if ([facade valueForUndefinedKey:key] == nil){
                     [facade setValue:settingsDefaultValue forUndefinedKey:key];
                 }
             } else {
-                item = [TSKSettingItem actionItemWithTitle:title description:key representedObject:process keyPath:nil target:self action:@selector(rowSelected:)];
+                item = [TSKSettingItem actionItemWithTitle:title description:desc representedObject:process keyPath:key target:self action:@selector(rowSelected:)];
             }
             [item setItemIcon:[process icon]];
             if(supportsLongPress){
