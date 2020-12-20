@@ -45,24 +45,26 @@
 @interface ALSettingsFacade: TSKPreferencesFacade
 @end
 
-@implementation ALSettingsFacade
+/**
+ This is a bit... unclean, but it works. since 'toggle' TSKSettingItems have a keyPath associated with them for the preference facade it doesn't jive well with bundle identifiers due to the nature of keyPaths.
+ ie VPEnabled-com.apple.TVHomeSharing will actually resolve to [facade valueForKey:@"VPEnabled-com"] , which yields nothing. Therefore the default functionality of tracking and setting defaults is
+ completely broken with those kind of keys (which is what iOS applist creates by default), I work around this by creating our own settings facade and try to detect app instances by looking for
+ com., net. or org. in the keyPath and then either call valueForKey or setValue:forKey respectively to avoid processing the 'paths' in the key. the periods are added so we dont erroneously sweep up
+ properties that have those words but dont contain any periods.
 
-- (id)valueForKey:(id)key {
-    id og = [super valueForKey:key];
-    //NSLog(@"[AppList] returning value: %@ of type: %@ forKey: %@", og, [og class], key);
-    return og;
-}
+ */
+
+@implementation ALSettingsFacade
  
 - (id)valueForKeyPath:(id)keyPath {
     
     if ([keyPath respondsToSelector:@selector(length)]){
-        if ([keyPath containsString:@"com"] || [keyPath containsString:@"net"] || [keyPath containsString:@"org"]){
+        if ([keyPath containsString:@"com."] || [keyPath containsString:@"net."] || [keyPath containsString:@"org."]){
             id val = [super valueForKey:keyPath];
             //NSLog(@"[AppList] returning value: %@ of type: %@ forKeyPath: %@", val, [val class], keyPath);
             return val;
         }
     }
-    
     id og = [super valueForKeyPath:keyPath];
     //NSLog(@"[AppList] returning value: %@ of type: %@ forKeyPath: %@", og, [og class], keyPath);
     return og;
@@ -71,20 +73,14 @@
 - (void)setValue:(id)value forKeyPath:(id)keyPath {
     
     if ([keyPath respondsToSelector:@selector(length)]){
-        if ([keyPath containsString:@"com"] || [keyPath containsString:@"net"] || [keyPath containsString:@"org"]){
+        if ([keyPath containsString:@"com."] || [keyPath containsString:@"net."] || [keyPath containsString:@"org."]){
             [super setValue:value forKey:keyPath];
             //NSLog(@"[AppList] setting value: %@ of type: %@ forKey: %@", value, [value class], keyPath);
             return;
         }
     }
-    
     //NSLog(@"[AppList] setting value: %@ of type: %@ forKeyPath: %@", value, [value class], keyPath);
     [super setValue:value forKeyPath:keyPath];
-}
-
-- (void)setValue:(id)value forKey:(id)key {
-    //NSLog(@"[AppList] setting value: %@ of type: %@ forKey: %@", value, [value class], key);
-    [super setValue:value forKey:key];
 }
 
 @end
@@ -159,11 +155,7 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
 
 /*
  
- settingsKeyPrefix = [specifier propertyForKey:singleEnabledMode ? @"ALSettingsKey" : @"ALSettingsKeyPrefix"] ?: @"ALValue-";
- 
  settings = [[NSMutableDictionary alloc] initWithContentsOfFile:settingsPath] ?: [[NSMutableDictionary alloc] init];
- 
- 
  id temp = [specifier propertyForKey:@"ALAllowsSelection"];
  [_tableView setAllowsSelection:temp ? [temp boolValue] : singleEnabledMode];
  
@@ -416,7 +408,10 @@ const NSString *ALUseBundleIdentifier = @"ALUseBundleIdentifier";
     } else {
         app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
     }
-    
+    if (!app) {
+        NSLog(@"[AppList] no app found!");
+        return;
+    }
     UIAlertController *ac = [UIAlertController alertControllerWithTitle:[item localizedTitle] message:nil preferredStyle:UIAlertControllerStyleActionSheet];
     
     UIAlertAction *open = [UIAlertAction actionWithTitle:@"Open" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {

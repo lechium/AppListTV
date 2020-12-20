@@ -34,7 +34,7 @@
 
 - (ALApplication *)applicationWithDisplayIdentifier:(NSString *)identifier {
     id prox = [LSApplicationProxy applicationProxyForIdentifier:identifier];
-    if (!prox) return nil;
+    if (!prox || ![prox bundleURL]) return nil;
     return [[ALApplication alloc] initWithProxy:prox];
 }
 
