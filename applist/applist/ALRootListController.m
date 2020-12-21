@@ -143,10 +143,21 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
     }];
 }
 
+- (BOOL)inSettings {
+    NSString *pn = [[NSProcessInfo processInfo ] processName ];
+    return([pn isEqualToString:@"TVSettings"]);
+       
+}
+
 - (id)init {
     self = [super init];
     if (self){
         self.loadingItem = [TSKSettingItem titleItemWithTitle:@"Loading please wait..." description:@"Loading all processes this may take a moment please wait." representedObject:nil keyPath:nil];
+        if (![self inSettings]){
+            NSString *bundleImagePath = [[NSBundle bundleForClass: [self class]] pathForResource:@"ExecutableBinaryIcon" ofType:@"png"];
+            UIImage *image = [UIImage imageWithContentsOfFile:bundleImagePath];
+            [self.loadingItem setItemIcon:image];
+        }
     }
     return self;
 }
@@ -257,6 +268,7 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
     supportsLongPress = true;
     allProcessesMode = false;
     singleEnabledMode = false;
+    _pleaseWaitView = false;
     NSString *navTitle = spec[@"ALNavigationTitle"];
     if (!navTitle){
         navTitle = spec[@"label"];
@@ -288,11 +300,11 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
         supportsLongPress = [spec[ALItemSupportsLongPress] boolValue];
     }
     if ([[spec allKeys] containsObject:ALAllProcessesMode]){
-        NSLog(@"all processes mode!");
         allProcessesMode = [spec[ALAllProcessesMode] boolValue];
-        _pleaseWaitView = true;
+        if (allProcessesMode){
+            _pleaseWaitView = true;
+        }
     }
- 
     _specifierLoaded = true;
 }
 
@@ -440,6 +452,11 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
     NSString *desc = [currentItem localizedDescription];
     if (_pleaseWaitView){
         item =  (TSKAppIconPreviewViewController*)[[[self navigationController] previousViewController] defaultPreviewViewController];
+        if (!item || ![self inSettings]){
+            item = (TSKAppIconPreviewViewController*)[TSKPreviewViewController new];
+            TSKVibrantImageView *imageView = [[TSKVibrantImageView alloc] initWithImage:[currentItem itemIcon]];
+            [item setContentView:imageView];
+        }
         [item setDescriptionText:desc];
         return item;
     }
