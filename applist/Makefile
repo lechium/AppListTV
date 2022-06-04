@@ -8,6 +8,7 @@ LIBRARY_NAME = libapplist
 
 libapplist_FILES = $(wildcard *.m) $(wildcard applications/*.m)
 libapplist_LIBRARIES = prefs
+libapplist_FRAMEWORKS = CoreServices
 libapplist_CFLAGS = -I./ -Iinclude -IPublic -Iapplications -fobjc-arc
 libapplist_LDFLAGS = -undefined dynamic_lookup
 include $(THEOS_MAKE_PATH)/library.mk
