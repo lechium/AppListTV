@@ -265,67 +265,6 @@
     return [self applicationsFromArray:[[self defaultWorkspace] applicationsOfType:0] filterHidden:false];
 }
 
-- (NSDictionary *)oldrawDaemonDetails {
-    if ((__rawDaemonDetails != nil) && (_needsRefresh == false)){
-        return __rawDaemonDetails;
-    }
-    NSMutableDictionary *finalDict = [NSMutableDictionary new];
-    NSString *systemPath = @"/System/Library/LaunchDaemons/";
-    NSString *libPath = @"/Library/LaunchDaemons/";
-    NSArray *systemDaemons = [FM contentsOfDirectoryAtPath:systemPath error:nil];
-    NSArray *libraryDaemons = [FM contentsOfDirectoryAtPath:libPath error:nil];
-    [systemDaemons enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        
-        if ([[obj pathExtension] isEqualToString:@"plist"]){
-            NSDictionary *dirtyDeeds = [NSDictionary dictionaryWithContentsOfFile:[systemPath stringByAppendingPathComponent:obj]];
-            if (dirtyDeeds){
-                NSString *dictKey = nil;
-                if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
-                    //NSLog(@"program: %@", obj);
-                    dictKey = [dirtyDeeds[@"Program"] lastPathComponent];
-                } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
-                    //NSLog(@"programArgs: %@", obj);
-                    dictKey = [[dirtyDeeds[@"ProgramArguments"] firstObject] lastPathComponent];
-                }
-                //NSLog(@"dictKey: %@", dictKey);
-                if (dictKey != nil && dirtyDeeds != nil){
-                    finalDict[dictKey] = dirtyDeeds;
-                }
-                
-            }
-            
-        }
-        
-    }];
-    
-    [libraryDaemons enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        
-        if ([[obj pathExtension] isEqualToString:@"plist"]){
-            NSDictionary *dirtyDeeds = [NSDictionary dictionaryWithContentsOfFile:[libPath stringByAppendingPathComponent:obj]];
-            if (dirtyDeeds){
-                NSString *dictKey = nil;
-                if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
-                    //NSLog(@"program: %@", obj);
-                    dictKey = [dirtyDeeds[@"Program"] lastPathComponent];
-                } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
-                    //NSLog(@"programArgs: %@", obj);
-                    dictKey = [[dirtyDeeds[@"ProgramArguments"] firstObject] lastPathComponent];
-                }
-                //NSLog(@"dictKey: %@", dictKey);
-                if (dictKey != nil && dirtyDeeds != nil){
-                    finalDict[dictKey] = dirtyDeeds;
-                }
-                
-            }
-            
-        }
-        
-    }];
-    __rawDaemonDetails = finalDict;
-    
-    return __rawDaemonDetails;
-}
-
 + (NSString *)userForID:(NSInteger)uid {
     
     switch (uid){

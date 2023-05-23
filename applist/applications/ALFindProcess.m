@@ -93,7 +93,7 @@ static int process_buffer_size = 4096;
     pid_t *pid_buffer;
     char path_buffer[MAXPATHLEN];
     int count, i, ret;
-    boolean_t res = FALSE;
+    //boolean_t res = FALSE;
     pid_t ppid_ret = 0;
     pid_buffer = (pid_t*)calloc(1, process_buffer_size);
     assert(pid_buffer != NULL);
@@ -134,7 +134,7 @@ static int process_buffer_size = 4096;
             */
             if(strstr(path_buffer, name)) {
                 NSLog(@"comparing %s to %s", path_buffer, name);
-                res = TRUE;
+                //res = TRUE;
                 ppid_ret = ppid;
                 break;
             }
