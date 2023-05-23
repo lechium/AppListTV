@@ -1,3 +1,4 @@
+export THEOS=/Users/$(shell whoami)/Projects/theos
 ARCHS = arm64
 TARGET = appletv:clang
 

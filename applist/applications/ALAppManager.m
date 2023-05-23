@@ -4,6 +4,7 @@
 #import <objc/runtime.h>
 #import "NSTask.h"
 #import "Defines.h"
+#import <libkbtask/KBTaskManager.h>
 @interface ALAppManager() {
     NSDictionary *__rawDaemonDetails;
     NSArray *__allApplicationCache;
@@ -62,8 +63,8 @@
 }
 
 + (NSArray *)rawDaemonList {
-    NSArray *returnValue = [self returnForProcess:@"/usr/bin/find / -name \"com.*.plist\""];
-    NSLog(@"find return: %@", returnValue);
+    NSArray *returnValue = [[KBTaskManager kb_task_returnForProcess:@"/usr/bin/find / -name \"com.*.plist\""] componentsSeparatedByString:@"\n"];
+    //NSLog(@"find return: %@", returnValue);
     return returnValue;
 }
 
