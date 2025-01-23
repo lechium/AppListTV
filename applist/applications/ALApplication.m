@@ -118,7 +118,13 @@
 
 - (UIImage *)icon {
     
-    return [self.proxy tv_applicationFlatIcon];
+    if ([self.proxy respondsToSelector:@selector(tv_applicationFlatIcon)]){
+        return [self.proxy tv_applicationFlatIcon];
+    } else {
+        NSLog(@"[AppListTV]: %@ doesn't respond to tv_applicationFlatIcon", self.proxy);
+        return nil;
+    }
+    
 }
 
 - (pid_t)pid {
