@@ -5,6 +5,7 @@
 - (NSString *)bundleExecutable;
 
 -(id)tv_applicationFlatIcon;
+-(id)_tv_placeholderIconImage;
 -(id)tv_supportedUserInterfaceStyles;
 -(id)_tv_applicationIconName;
 -(id)_tv_uncachedAssetManager;

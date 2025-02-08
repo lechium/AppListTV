@@ -1,5 +1,6 @@
+#import "HBLog.h"
 #define FM [NSFileManager defaultManager]
-
+#define LOG_SELF        HBLogDebug(@"%@ %@", self, NSStringFromSelector(_cmd))
 @interface NSObject (wrekt)
 -(NSURL *)resourcesDirectoryURL;
 -(NSURL *)dataContainerURL;

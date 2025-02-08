@@ -37,6 +37,7 @@ extern const NSString *ALSectionDescriptorCellClassNameKey;
 extern const NSString *ALSectionDescriptorIconSizeKey;
 extern const NSString *ALSectionDescriptorSuppressHiddenAppsKey;
 extern const NSString *ALSectionDescriptorVisibilityPredicateKey;
+extern const NSString *ALChangeNotification;
 
 extern const NSString *ALItemDescriptorTextKey;
 extern const NSString *ALItemDescriptorDetailTextKey;

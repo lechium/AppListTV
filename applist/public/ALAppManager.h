@@ -16,6 +16,7 @@
 - (NSArray <ALApplication *> *)allInstalledApplications;
 - (NSArray <ALApplication *> *)userInstalledApplications;
 - (NSDictionary *)rawDaemonDetails;
+- (NSArray <ALRunningProcess*> *)allRunningProcesses;
 + (int)killRunningProcess:(ALRunningProcess *)app;
 + (NSString *)userForID:(NSInteger)uid;
 + (NSString *)groupForID:(NSInteger)gid;

@@ -1,13 +1,15 @@
 
 #import "ALAppManager.h"
 #import "ALFindProcess.h"
+#import "ALRunningProcess.h"
 #import <objc/runtime.h>
 #import "NSTask.h"
 #import "Defines.h"
 #import <libkbtask/KBTaskManager.h>
 @interface ALAppManager() {
-    NSDictionary *__rawDaemonDetails;
+    __block NSDictionary *__rawDaemonDetails;
     NSArray *__allApplicationCache;
+    NSArray *__allRunningProcessesCache;
     BOOL _needsRefresh;
 }
 @end
@@ -18,12 +20,23 @@
     return [[[self defaultWorkspace] allInstalledApplications] count];
 }
 
+- (NSArray <ALRunningProcess*> *)allRunningProcesses {
+    NSInteger processCount = [ALFindProcess totalProcessCount];
+    NSInteger apCacheCount = [__allRunningProcessesCache count];
+    if (apCacheCount != processCount) {
+        HBLogDebug(@"apCache count: %lu != processCount: %lu", apCacheCount, processCount);
+        __allRunningProcessesCache = [ALFindProcess allRunningProcesses];
+    }
+    return __allRunningProcessesCache;
+}
+
 + (id)sharedManager {
     static dispatch_once_t onceToken;
     static ALAppManager *shared = nil;
     if(shared == nil){
         dispatch_once(&onceToken, ^{
             shared = [[ALAppManager alloc] init];
+            [shared preloadDaemonDetails];
         });
     }
     return shared;
@@ -45,9 +58,9 @@
     [applications enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         ALApplication *app = [[ALApplication alloc] initWithProxy:obj];
         if (app){
-            //NSLog(@"filter: %d hidden: %d", filter, app.hidden);
+            //HBLogDebug(@"filter: %d hidden: %d", filter, app.hidden);
             if ((filter == true) && (app.hidden == true)){
-                //NSLog(@"filtering out hidden app: %@", app);
+                //HBLogDebug(@"filtering out hidden app: %@", app);
             } else {
                 [ntvApps addObject:app];
                 
@@ -64,17 +77,18 @@
 
 + (NSArray *)rawDaemonList {
     NSArray *returnValue = [[KBTaskManager kb_task_returnForProcess:@"/usr/bin/find / -name \"com.*.plist\""] componentsSeparatedByString:@"\n"];
-    //NSLog(@"find return: %@", returnValue);
+    //HBLogDebug(@"find return: %@", returnValue);
     return returnValue;
 }
 
 
-- (NSDictionary *)rawDaemonDetails {
+- (NSDictionary *)oldRawDaemonDetails {
     if ((__rawDaemonDetails != nil) && (_needsRefresh == false)){
            return __rawDaemonDetails;
     }
     NSArray *fullDaemonList = [ALAppManager rawDaemonList];
-    NSMutableDictionary *finalDict = [NSMutableDictionary new];
+    HBLogDebug(@"fullDaemonList: %@", fullDaemonList);
+    __block NSMutableDictionary *finalDict = [NSMutableDictionary new];
     [fullDaemonList enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         
         if ([[obj pathExtension] isEqualToString:@"plist"]){
@@ -82,13 +96,13 @@
             if (dirtyDeeds){
                 NSString *dictKey = nil;
                 if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
-                    //NSLog(@"program: %@", obj);
+                    HBLogDebug(@"program: %@", obj);
                     dictKey = [dirtyDeeds[@"Program"] lastPathComponent];
                 } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
-                    //NSLog(@"programArgs: %@", obj);
+                    HBLogDebug(@"programArgs: %@", obj);
                     dictKey = [[dirtyDeeds[@"ProgramArguments"] firstObject] lastPathComponent];
                 }
-                //NSLog(@"dictKey: %@", dictKey);
+                HBLogDebug(@"dictKey: %@", dictKey);
                 if (dictKey != nil && dirtyDeeds != nil){
                     finalDict[dictKey] = dirtyDeeds;
                 }
@@ -97,15 +111,95 @@
             
         }
     }];
+    _needsRefresh = false;
     __rawDaemonDetails = finalDict;
     return __rawDaemonDetails;
 }
+
+- (NSDictionary *)rawDaemonDetails {
+    if (kCFCoreFoundationVersionNumber < 1853.0) {
+        return [self oldRawDaemonDetails];
+    }
+    if ((__rawDaemonDetails != nil) && (_needsRefresh == false)){
+        return __rawDaemonDetails;
+    }
+    __block NSMutableDictionary *finalDict = [NSMutableDictionary new];
+    NSString *systemPath = @"/System/Library/LaunchDaemons/";
+    NSString *libPath = @"/Library/LaunchDaemons/";
+    NSError *sdError = nil;
+    NSError *ldError = nil;
+    NSArray *systemDaemons = [FM contentsOfDirectoryAtPath:systemPath error:&sdError];
+    NSArray *libraryDaemons = [FM contentsOfDirectoryAtPath:libPath error:&ldError];
+    if (sdError != nil) {
+        HBLogDebug(@"systemDaemon error: %@", sdError);
+    } else {
+        HBLogDebug(@"systemDaemons: %@", systemDaemons);
+    }
+    if (ldError != nil) {
+        HBLogDebug(@"libraryDaemons error: %@", ldError);
+    } else {
+        HBLogDebug(@"libraryDaemons: %@", libraryDaemons);
+    }
+    //HBLogDebug(@"enumerating systemDaemons");
+    [systemDaemons enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        if ([[obj pathExtension] isEqualToString:@"plist"]){
+            NSDictionary *dirtyDeeds = [NSDictionary dictionaryWithContentsOfFile:[systemPath stringByAppendingPathComponent:obj]];
+            if (dirtyDeeds){
+                NSString *dictKey = nil;
+                if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
+                    //HBLogDebug(@"program: %@", obj);
+                    dictKey = [dirtyDeeds[@"Program"] lastPathComponent];
+                } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
+                    //HBLogDebug(@"programArgs: %@", obj);
+                    dictKey = [[dirtyDeeds[@"ProgramArguments"] firstObject] lastPathComponent];
+                }
+                //HBLogDebug(@"dictKey: %@", dictKey);
+                if (dictKey != nil && dirtyDeeds != nil){
+                    finalDict[dictKey] = dirtyDeeds;
+                }
+                
+            }
+            
+        }
+        
+    }];
+    HBLogDebug(@"enumerating libraryDaemons");
+    [libraryDaemons enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        if ([[obj pathExtension] isEqualToString:@"plist"]){
+            NSDictionary *dirtyDeeds = [NSDictionary dictionaryWithContentsOfFile:[libPath stringByAppendingPathComponent:obj]];
+            if (dirtyDeeds){
+                NSString *dictKey = nil;
+                if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
+                    //HBLogDebug(@"program: %@", obj);
+                    dictKey = [dirtyDeeds[@"Program"] lastPathComponent];
+                } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
+                    //HBLogDebug(@"programArgs: %@", obj);
+                    dictKey = [[dirtyDeeds[@"ProgramArguments"] firstObject] lastPathComponent];
+                }
+                //HBLogDebug(@"dictKey: %@", dictKey);
+                if (dictKey != nil && dirtyDeeds != nil){
+                    finalDict[dictKey] = dirtyDeeds;
+                }
+                
+            }
+            
+        }
+        
+    }];
+    
+    __rawDaemonDetails = finalDict;
+    
+    return __rawDaemonDetails;
+}
+
 
 + (int)killProcess:(NSString *)processName {
     
     pid_t fp = [ALFindProcess find_process:processName.UTF8String fuzzy:true];
     if (fp != 0){
-        NSLog(@"found %@ at pid %d", processName, fp);
+        HBLogDebug(@"found %@ at pid %d", processName, fp);
         return kill(fp, 9);
     }
     return -1;
@@ -123,7 +217,7 @@
     NSArray *args = [call componentsSeparatedByString:@" "];
     NSString *taskBinary = args[0];
     NSArray *taskArguments = [args subarrayWithRange:NSMakeRange(1, args.count-1)];
-    //NSLog(@"%@ %@", taskBinary, [taskArguments componentsJoinedByString:@" "]);
+    //HBLogDebug(@"%@ %@", taskBinary, [taskArguments componentsJoinedByString:@" "]);
     NSTask *task = [[NSTask alloc] init];
     NSPipe *pipe = [[NSPipe alloc] init];
     NSFileHandle *handle = [pipe fileHandleForReading];
@@ -155,7 +249,7 @@
     
     int status = 0;
     if (app.uid == 0){
-        NSLog(@"can't kill privledged processes!");
+        HBLogDebug(@"can't kill privledged processes!");
         return -1;
     } else {
         status = kill([app pid], 9);
@@ -194,12 +288,12 @@
 
 + (int)killAllProcesses:(NSArray <ALRunningProcess *> *)metas root:(BOOL)priv{
     if (priv == true){
-        NSLog(@"can't kill privledged processes!");
+        HBLogDebug(@"can't kill privledged processes!");
         return -1;
     } else {
         [metas enumerateObjectsUsingBlock:^(ALRunningProcess * _Nonnull proc, NSUInteger idx, BOOL * _Nonnull stop) {
             int status = kill([proc pid], 9);
-            NSLog(@"kill %@ returned status %i", proc.name, status);
+            HBLogDebug(@"kill %@ returned status %i", proc.name, status);
             [proc resetPid];
         }];
     }

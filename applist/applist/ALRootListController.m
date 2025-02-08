@@ -3,6 +3,8 @@
 #import "ALAppManager.h"
 #import "TVSPreferences.h"
 #import "ALFindProcess.h"
+#import "Defines.h"
+#import <objc/runtime.h>
 
 @interface UIView (preferenceLoader)
 - (NSArray *)siblingsInclusive:(BOOL)include;// inclusive means we include ourselves as well
@@ -21,6 +23,7 @@
 @interface ALRootListController(){
     BOOL _pleaseWaitView;
     BOOL _specifierLoaded;
+    __block BOOL _allLoading;
     NSMutableArray *_backingArray;
 }
 
@@ -40,6 +43,26 @@
 @property (nonatomic, strong) NSDictionary *specifier;
 @property (nonatomic, strong) NSDictionary *keyboardDetails;
 @property (nonatomic, strong) UIImage *itemIcon;
+
+@end
+
+@interface TSKSettingItem (appList)
+@property (nonatomic, strong) id associatedObject;
+@end
+
+@implementation TSKSettingItem (appList)
+
+-(id)associatedObject {
+    id associatedObject = objc_getAssociatedObject(self, @selector(associatedObject));
+    //NSLog(@" %@ specifier: %@", self, specifier);
+    return associatedObject;
+}
+
+- (void)setAssociatedObject:(id)associatedObject {
+    //NSLog(@"%@ setSpecifier: %@", self, specifier);
+    objc_setAssociatedObject(self, @selector(associatedObject), associatedObject, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
 @end
 
 @interface ALSettingsFacade: TSKPreferencesFacade
@@ -59,7 +82,7 @@
 - (id)valueForKeyPath:(id)keyPath {
     
     if ([keyPath respondsToSelector:@selector(length)]){
-        if ([keyPath containsString:@"com."] || [keyPath containsString:@"net."] || [keyPath containsString:@"org."]){
+        if ([keyPath containsString:@"."]) {//([keyPath containsString:@"com."] || [keyPath containsString:@"net."] || [keyPath containsString:@"org."]){
             id val = [super valueForKey:keyPath];
             //NSLog(@"[AppList] returning value: %@ of type: %@ forKeyPath: %@", val, [val class], keyPath);
             return val;
@@ -73,7 +96,7 @@
 - (void)setValue:(id)value forKeyPath:(id)keyPath {
     
     if ([keyPath respondsToSelector:@selector(length)]){
-        if ([keyPath containsString:@"com."] || [keyPath containsString:@"net."] || [keyPath containsString:@"org."]){
+        if ([keyPath containsString:@"."]){
             [super setValue:value forKey:keyPath];
             //NSLog(@"[AppList] setting value: %@ of type: %@ forKey: %@", value, [value class], keyPath);
             return;
@@ -101,7 +124,7 @@ const NSString *ALItemDescriptorDetailTextKey = @"detail-text";
 const NSString *ALItemDescriptorImageKey = @"image";
 
 const NSString *ALSingleEnabledMode = @"ALSingleEnabledMode";
-
+const NSString *ALChangeNotification = @"ALChangeNotification";
 //tvOS
 const NSString *ALItemSupportsLongPress = @"supports-long-press";
 const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
@@ -192,9 +215,11 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
         if (singleEnabledMode){
             settingsKey = settingsKeyPrefix;
             item = [TSKSettingItem actionItemWithTitle:obj description:key representedObject:nil keyPath:key target:self action:@selector(rowSelected:)];
+            [item setAssociatedObject:obj];
         } else {
             item = [TSKSettingItem toggleItemWithTitle:obj description:key representedObject:facade keyPath:settingsKey onTitle:nil offTitle:nil];
             [item setDefaultValue:settingsDefaultValue];
+            [item setAssociatedObject:obj];
             if ([facade valueForUndefinedKey:settingsKey] == nil){
                 [facade setValue:settingsDefaultValue forUndefinedKey:settingsKey];
             }
@@ -317,9 +342,16 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
 }
 
 - (void)loadAllProcessSpecifierInBackground:(NSDictionary *)groupDescriptor {
+    if (_allLoading) {
+        NSLog(@"already loading, bail!");
+        return;
+    }
+    LOG_SELF;
+    _allLoading = true;
+    supportsLongPress = true;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         NSMutableArray *_items = [NSMutableArray new];
-        NSArray *allProcesses = [ALFindProcess allRunningProcesses];
+        NSArray *allProcesses = [[ALAppManager sharedManager] allRunningProcesses];
         [allProcesses enumerateObjectsUsingBlock:^(ALRunningProcess  *_Nonnull process, NSUInteger idx, BOOL * _Nonnull stop) {
             NSString *title = [process name];
             NSString *desc = [process identifierIfApplicable];
@@ -335,6 +367,7 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
                 if ([facade valueForUndefinedKey:key] == nil){
                     [facade setValue:settingsDefaultValue forUndefinedKey:key];
                 }
+                [item setAssociatedObject:process];
             } else {
                 item = [TSKSettingItem actionItemWithTitle:title description:desc representedObject:process keyPath:key target:self action:@selector(rowSelected:)];
             }
@@ -348,6 +381,7 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
         }];
         dispatch_async(dispatch_get_main_queue(), ^{
             _pleaseWaitView = false;
+            _allLoading = false;
             NSString *groupTitle = groupDescriptor[ALSectionDescriptorTitleKey];
             NSArray *settingsItems = [_items sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"localizedTitle" ascending:TRUE]]];
             TSKSettingGroup *group = [TSKSettingGroup groupWithTitle:groupTitle settingItems:settingsItems];
@@ -360,7 +394,7 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
 }
 
 - (id)loadSettingGroups {
-    
+    LOG_SELF;
     NSDictionary *spec = [self specifier];
     [self loadSpecifier:spec];
     self.sectionDescriptors = spec[@"ALSectionDescriptors"];
@@ -397,37 +431,44 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
 }
 
 - (void)longPressAction:(TSKSettingItem *)item {
-    
+    LOG_SELF;
     ALApplication *app = nil;
+    ALRunningProcess *process = nil;
+    pid_t pid = 0;
     NSString *ident = [item localizedDescription];
-    if ([[item representedObject] isKindOfClass:[ALRunningProcess class]]){
-        ALRunningProcess *process = [item representedObject];
+    HBLogDebug(@"[item associatedObject]: %@", [item associatedObject]);
+    UIAlertController *ac = [UIAlertController alertControllerWithTitle:[item localizedTitle] message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    if ([[item associatedObject] isKindOfClass:[ALRunningProcess class]]){
+        process = [item associatedObject];
         NSLog(@"process: %@", process);
+        pid = [process pid];
         if ([process associatedApplication]){
             app = [process associatedApplication];
             ident = [app bundleID];
         } else {
-            return;
+            //return;
         }
     } else {
         app = [[ALAppManager sharedManager] applicationWithDisplayIdentifier:ident];
+        pid = [app pid];
     }
     if (!app) {
         NSLog(@"[AppList] no app found!");
-        return;
+        //return;
+    } else {
+        UIAlertAction *open = [UIAlertAction actionWithTitle:@"Open" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            
+            [[ALAppManager sharedManager] launchApplication:app];
+            
+        }];
+        [ac addAction:open];
     }
-    UIAlertController *ac = [UIAlertController alertControllerWithTitle:[item localizedTitle] message:nil preferredStyle:UIAlertControllerStyleActionSheet];
     
-    UIAlertAction *open = [UIAlertAction actionWithTitle:@"Open" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        
-        [[ALAppManager sharedManager] launchApplication:app];
-        
-    }];
-    [ac addAction:open];
-    pid_t pid = [app pid];
+    //pid_t pid = [app pid];
+    NSLog(@"pid: %d", pid);
     if (pid != 0){
         NSLog(@"pid: %d", pid);
-        UIAlertAction *quitAction = [UIAlertAction actionWithTitle:@"Quit Application" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
+        UIAlertAction *quitAction = [UIAlertAction actionWithTitle:@"Quit Process" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
             
             [ALAppManager killApplication:app];
             
@@ -460,14 +501,27 @@ const NSString *ALAllProcessesMode  = @"ALAllProcessesMode";
         [item setDescriptionText:desc];
         return item;
     }
+    ALApplicationList *list = [ALApplicationList sharedApplicationList];
     if (allProcessesMode){
         item = (TSKAppIconPreviewViewController*)[TSKPreviewViewController new];
         TSKVibrantImageView *imageView = [[TSKVibrantImageView alloc] initWithImage:[currentItem itemIcon]];
+        imageView.layer.cornerRadius = 40;
+        imageView.clipsToBounds = true;
         [item setContentView:imageView];
         [item setDescriptionText:desc];
         return item;
     }
-    item = [[TSKAppIconPreviewViewController alloc] initWithApplicationBundleIdentifier:desc];
+    
+    if ([list applicationWithDisplayIdentifierIsHidden:desc]) {
+        item = (TSKAppIconPreviewViewController*)[TSKPreviewViewController new];
+        UIImage *image = [list iconOfSize:ALApplicationIconSizeSmall forDisplayIdentifier:desc];
+        TSKVibrantImageView *imageView = [[TSKVibrantImageView alloc] initWithImage:image];
+        imageView.layer.cornerRadius = 40;
+        imageView.clipsToBounds = true;
+        [item setContentView:imageView];
+    } else {
+        item = [[TSKAppIconPreviewViewController alloc] initWithApplicationBundleIdentifier:desc];
+    }
     NSString *appDetails = [NSString stringWithFormat:@"%@\n\nLong press for more options.", desc];
     [item setDescriptionText:appDetails];
     return item;

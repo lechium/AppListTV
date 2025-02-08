@@ -4,6 +4,7 @@
 #import <dlfcn.h>
 #import "ALAppManager.h"
 #import "ALApplication.h"
+#import "Defines.h"
 
 NSString *const ALIconLoadedNotification = @"ALIconLoadedNotification";
 NSString *const ALDisplayIdentifierKey = @"ALDisplayIdentifier";
@@ -37,6 +38,7 @@ static NSInteger DictionaryTextComparator(id a, id b, void *context) {
 {
     if (self == [ALApplicationList class]) { //} && !%c(SBIconModel)) {
         sharedApplicationList = [[self alloc] init];
+        [[NSBundle bundleWithPath:@"/System/Library/Frameworks/TVKit.framework/"] load];
     }
 }
 

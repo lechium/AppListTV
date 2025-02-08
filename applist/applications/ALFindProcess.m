@@ -1,5 +1,6 @@
 #import "ALFindProcess.h"
 #import "ALRunningProcess.h"
+#import "Defines.h"
 //#import "BaseMetaData.h"
 
 //extern char*** _NSGetEnviron(void);
@@ -17,7 +18,7 @@ static int process_buffer_size = 4096;
 
 @implementation ALFindProcess
 
-+ (NSArray <NSNumber *> *)childProcessIds:(pid_t)pid{
++ (NSArray <NSNumber *> *)childProcessIds:(pid_t)pid {
     NSMutableArray *_ourPids = [NSMutableArray new];
     pid_t *pids = NULL;
     size_t len = sizeof(pid_t) * 1000;
@@ -45,7 +46,7 @@ static int process_buffer_size = 4096;
 }
 
 + (NSArray <ALRunningProcess *> *)allRunningProcesses {
-    
+    LOG_SELF;
     pid_t *pid_buffer;
     char path_buffer[MAXPATHLEN];
     int count, i, ret;
@@ -53,11 +54,12 @@ static int process_buffer_size = 4096;
     assert(pid_buffer != NULL);
     NSMutableArray *processes = [NSMutableArray new];
     count = proc_listallpids(pid_buffer, process_buffer_size);
-    NSLog(@"process count: %d", count);
+    NSLog(@"[AppListTV] process count: %d", count);
+    NSDate *date = [NSDate date];
     if(count) {
         for(i = 0; i < count; i++) {
             pid_t pid = pid_buffer[i];
-            
+            //HBLogDebug(@"[AppListTV] process: %d of %D", i, count);
             ret = proc_pidpath(pid, (void*)path_buffer, sizeof(path_buffer));
             if(ret < 0) {
                 printf("(%s:%d) proc_pidinfo() call failed.\n", __FILE__, __LINE__);
@@ -76,6 +78,8 @@ static int process_buffer_size = 4096;
     }
     
     free(pid_buffer);
+    NSTimeInterval ti = [[NSDate date] timeIntervalSinceDate:date];
+    HBLogDebug(@"time elapsed: %.0f", ti);
     return [processes sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"name" ascending:TRUE]]];
 }
 

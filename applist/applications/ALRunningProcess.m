@@ -2,7 +2,7 @@
 #import "ALRunningProcess.h"
 #import "ALFindProcess.h"
 #import "ALAppManager.h"
-
+#import "Defines.h"
 @interface ALRunningProcess() {
     NSString *_cachedIdentifier;
     UIImage *_cachedIcon;
@@ -26,6 +26,14 @@
         self.assetDescription = fullPath;
         self.path = fullPath;
         _children = childPids;
+        uint32_t flags = proc.pbsi_flags;
+        //HBLogDebug(@"%@ flags: %u", self.name, flags);
+        if (flags & PROC_FLAG_IOS_APPLEDAEMON) {
+            //HBLogDebug(@"%@ is PROC_FLAG_IOS_APPLEDAEMON", self.name);
+        }
+        if (flags & PROC_FLAG_APPLICATION) {
+            //HBLogDebug(@"%@ is PROC_FLAG_APPLICATION",self.name);
+        }
         if (childPids.count > 0){
             //NSLog(@"process %@ has %lu children", self.name, childPids.count);
         }
@@ -74,18 +82,18 @@
     NSDictionary *packages = [[ALAppManager sharedManager] rawDaemonDetails];
     self.infoDictionary = packages[self.name];
     if (self.infoDictionary != nil){
-        //NSLog(@"%@ is a daemon!", self.name);
+        //HBLogDebug(@"%@ is a daemon!", self.name);
         _type = ProcessTypeDaemon; //this logic might be bunk
     } else {
         NSPredicate *predicate = [NSPredicate predicateWithFormat:@"self.binaryPath == %@",self.path];
         NSArray *apps = [[[ALAppManager sharedManager] allInstalledApplications] filteredArrayUsingPredicate:predicate];
         if (apps.count > 0){
-             //NSLog(@"%@ is a application!", self.name);
+             //HBLogDebug(@"%@ is a application!", self.name);
             _type = ProcessTypeApplication;
             self.associatedApplication = [apps firstObject];
             self.infoDictionary = self.associatedApplication.infoDictionary;
         } else {
-             //NSLog(@"%@ is generic!", self.name);
+             //HBLogDebug(@"%@ is generic!", self.name);
             _type = ProcessTypeGeneric;
         }
     }

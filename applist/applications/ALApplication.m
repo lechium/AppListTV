@@ -119,7 +119,17 @@
 - (UIImage *)icon {
     
     if ([self.proxy respondsToSelector:@selector(tv_applicationFlatIcon)]){
-        return [self.proxy tv_applicationFlatIcon];
+        UIImage *_icon = [self.proxy tv_applicationFlatIcon];
+        if (!_icon) {
+            NSLog(@"[AppListTV] icon is nil for %@", self.displayName);
+            if  ([self.proxy respondsToSelector:@selector(_tv_placeholderIconImage)]){
+                NSLog(@"[AppListTV] proxy responds to selector!");
+                _icon = [self.proxy _tv_placeholderIconImage];
+            } else {
+                NSLog(@"[AppListTV] %@ doesnt respond to _tv_placeholderIconImage", self.proxy);
+            }
+        }
+        return _icon;
     } else {
         NSLog(@"[AppListTV]: %@ doesn't respond to tv_applicationFlatIcon", self.proxy);
         return nil;
